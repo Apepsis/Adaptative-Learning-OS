@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { deleteSource, getSource, reprocessSource } from "@/lib/api-client";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { SourceStatus } from "@/lib/types";
 
-const ACTIVE_STATUSES: SourceStatus[] = ["UPLOADED", "QUEUED"];
+const ACTIVE_STATUSES: SourceStatus[] = ["UPLOADED", "PARSING"];
 
 export default function SourceDetailPage() {
   const params = useParams<{ sourceId: string }>();
@@ -50,8 +51,17 @@ export default function SourceDetailPage() {
         <StatusBadge status={source.status} />
       </div>
 
-      {source.status === "FAILED" && source.error_message && (
+      {(source.status === "FAILED" || source.status === "UNSUPPORTED") && source.error_message && (
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{source.error_message}</div>
+      )}
+
+      {source.status === "READY" && (
+        <Link
+          href={`/search?source_id=${source.id}`}
+          className="inline-block rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+        >
+          Search this source
+        </Link>
       )}
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border border-slate-200 bg-white p-4 text-sm">

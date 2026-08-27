@@ -1,5 +1,6 @@
 import type {
   HealthReadyResponse,
+  SearchResponse,
   Source,
   SourceListResponse,
   SourceStatusResponse,
@@ -92,4 +93,24 @@ export function reprocessSource(sourceId: string): Promise<Source> {
 
 export function deleteSource(sourceId: string): Promise<void> {
   return request<void>(`/v1/sources/${sourceId}`, { method: "DELETE" });
+}
+
+export interface SearchInput {
+  query: string;
+  subjectId?: string;
+  sourceIds?: string[];
+  topK?: number;
+}
+
+export function search({ query, subjectId, sourceIds, topK }: SearchInput): Promise<SearchResponse> {
+  return request<SearchResponse>("/v1/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query,
+      subject_id: subjectId,
+      source_ids: sourceIds,
+      top_k: topK,
+    }),
+  });
 }

@@ -1,4 +1,4 @@
-export type SourceStatus = "UPLOADED" | "QUEUED" | "FAILED";
+export type SourceStatus = "UPLOADED" | "PARSING" | "READY" | "FAILED" | "UNSUPPORTED";
 
 export interface Subject {
   id: string;
@@ -47,4 +47,21 @@ export interface HealthReadyResponse {
   database?: string;
   redis?: string;
   object_storage?: string;
+}
+
+export interface SearchResult {
+  chunk_id: string;
+  source_id: string;
+  source_title: string;
+  heading_path: string[];
+  page_start: number;
+  page_end: number;
+  text: string;
+  score: number;
+}
+
+export interface SearchResponse {
+  query: string;
+  results: SearchResult[];
+  not_found: boolean;
 }

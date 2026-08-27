@@ -12,6 +12,8 @@ from app.db.base import Base
 # Import every module's models so Base.metadata is fully populated for
 # autogenerate. New modules must be added here.
 from app.modules.identity import models as identity_models  # noqa: F401
+from app.modules.ingestion import models as ingestion_models  # noqa: F401
+from app.modules.retrieval import models as retrieval_models  # noqa: F401
 from app.modules.sources import models as sources_models  # noqa: F401
 from app.modules.subjects import models as subjects_models  # noqa: F401
 

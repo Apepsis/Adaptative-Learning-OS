@@ -56,6 +56,16 @@ cp .env.example .env
 docker compose up --build
 ```
 
+**The first `--build` is slow and large as of Phase 2** — the `api` image
+now installs `sentence-transformers` (which pulls in PyTorch) for local
+BGE-M3 embeddings. Expect several minutes and a few GB just for that
+layer. Subsequent builds are cached and fast unless `apps/api/pyproject.toml`
+changes. Separately, the **first time a PDF is actually ingested**, the
+worker downloads the BGE-M3 model itself (~2GB) from Hugging Face — that
+happens once, needs internet access, and is cached under the container's
+home directory afterward (add a named volume for it if you want the
+download to survive a `docker compose down`).
+
 In a second terminal, once Postgres is healthy:
 
 ```bash
@@ -69,6 +79,7 @@ Then open http://localhost:3000. The home page shows an "API ready" /
 ## Running tests without `make`
 
 ```bash
-docker compose run --rm api pytest
+docker compose run --rm api pytest              # fast, no ML model, no fixtures beyond Postgres/MinIO
+docker compose run --rm api pytest -m slow       # real PDF + real BGE-M3 embedding; slow, needs internet on first run
 docker compose run --rm web pnpm test -- --run
 ```

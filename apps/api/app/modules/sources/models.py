@@ -9,21 +9,25 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
 
-class SourceType(str, enum.Enum):
+class SourceType(enum.StrEnum):
     PDF = "pdf"
     DOCX = "docx"
     PPTX = "pptx"
     IMAGE = "image"
 
 
-class SourceStatus(str, enum.Enum):
-    """Subset of the full ingestion state machine (blueprint section 8.1)
-    that Phase 1 actually drives. Parsing/normalizing/chunking/indexing
-    states are introduced in Phase 2 once a real pipeline exists."""
+class SourceStatus(enum.StrEnum):
+    """Subset of the full ingestion state machine (blueprint section 8.1).
+    Still not the complete machine (no VALIDATING/NORMALIZING/CHUNKING/
+    INDEXING/CONCEPT_MAPPING split, no PARTIAL_READY) — those distinctions
+    arrive if/when a phase actually needs to expose them separately;
+    PARSING currently covers everything between upload and READY."""
 
     UPLOADED = "UPLOADED"
-    QUEUED = "QUEUED"
+    PARSING = "PARSING"
+    READY = "READY"
     FAILED = "FAILED"
+    UNSUPPORTED = "UNSUPPORTED"  # recognized type, but no parser wired up yet
 
 
 class Source(Base):

@@ -14,7 +14,7 @@ next one.
 | ----- | ---- | ------ |
 | 0 | Repository foundation | ✅ Done |
 | 1 | Library (source upload) | ✅ Done |
-| 2 | Parsing + search (Docling, OCR, chunks, embeddings, hybrid retrieval) | ⬜ Not started |
+| 2 | Parsing + search (native PDF, chunks, embeddings, hybrid retrieval) | ✅ Done |
 | 3 | Notebook Mode (grounded chat over sources) | ⬜ Not started |
 | 4 | Curriculum Builder (concept graph) | ⬜ Not started |
 | 5 | Learn UI (lessons, flashcards, definitions) | ⬜ Not started |
@@ -37,14 +37,10 @@ from Phase 6. Everything else is deliberately deferred.
 - `LOCAL_SINGLE_USER` auth shortcut (blueprint section 27) — every entity
   is still scoped by `user_id` so real auth can drop in later without a
   data model change.
-- PostgreSQL (pgvector image, extension not yet enabled — that's Phase 2)
-  with an Alembic migration for `users`, `subjects`, `sources`.
+- PostgreSQL with an Alembic migration for `users`, `subjects`, `sources`.
 - MinIO-backed object storage with streamed SHA-256 hashing, MIME
   sniffing (not trusting client-supplied extension/content-type), size
   limits, and duplicate detection.
-- A placeholder Celery ingestion task (`ingest_source_placeholder`) that
-  proves the async pipeline end-to-end: upload -> `UPLOADED` -> task
-  enqueued -> `QUEUED`. No parsing/OCR/embedding yet — that's Phase 2.
 - Next.js frontend (`apps/web`) with Home (API readiness indicator),
   Library (list/upload/detail with status polling), and Subjects
   (list/create).
@@ -57,17 +53,81 @@ from Phase 6. Everything else is deliberately deferred.
 - A static landing page (`site/`) published to GitHub Pages —
   documentation/marketing only; it cannot and does not run the backend.
 
-## Phase 2 preview (next up)
+## What Phase 2 actually built
 
-Per blueprint section 48, scope Phase 2 to native-text PDF only first:
+- Real ingestion pipeline (`app/modules/ingestion/`) replacing the Phase 1
+  placeholder task: download from object storage → parse → persist
+  `source_pages`/`source_blocks` → chunk → embed → persist `chunks` →
+  `READY`. Scoped to **native-text PDF only** — see
+  [ADR 0002](../adr/0002-lightweight-native-pdf-parser.md) for why the
+  parser is `pypdf` (verified against a real generated fixture PDF) rather
+  than Docling for this first slice, behind a `DocumentParser` protocol so
+  swapping parsers later doesn't touch anything downstream. DOCX/PPTX/
+  image sources uploaded in Phase 1 are marked `UNSUPPORTED` with a clear
+  message until a later slice adds parsers for them.
+- `SourceStatus` gained real states: `UPLOADED → PARSING → READY` (or
+  `FAILED` / `UNSUPPORTED`). The Phase 1 placeholder `QUEUED` state is
+  retired — it wasn't part of the blueprint's actual state machine
+  (section 8.1), it existed only to prove Celery enqueueing worked before
+  a real pipeline existed.
+- Local BGE-M3 embeddings (`app/ai/embeddings/`), behind a provider
+  interface (`EmbeddingProvider`) so a cloud provider can be added later
+  without touching retrieval. Verified for real: a downloaded BGE-M3 model
+  correctly ranked a semantically-relevant document above two irrelevant
+  ones for a test query (see the "Verification" note below).
+- Hybrid retrieval (`app/modules/retrieval/`): pgvector cosine similarity
+  + Postgres full-text search (`simple` config, generated `tsvector`
+  column), fused with Reciprocal Rank Fusion (blueprint section 9.6).
+  `POST /v1/search` — always scoped by `user_id` through a join on
+  `sources`, so one user's content can never leak into another's results.
+  An empty result set returns `not_found: true` explicitly rather than
+  silently returning nothing.
+- Migration `0002`: enables the `vector` Postgres extension, creates
+  `source_pages`, `source_blocks`, `chunks` (HNSW + GIN indexes).
+- Frontend: a `/search` page (global, or scoped to one source via
+  `?source_id=`), linked from the source detail page once a source is
+  `READY`.
+- Tests: fast, dependency-free unit tests for the parsing heuristic,
+  chunking, and RRF fusion (21 tests, run in `make test-api`, no
+  infrastructure needed) plus a `slow`-marked end-to-end suite
+  (`make test-api-slow`) that uploads a real fixture PDF, runs the real
+  pipeline, and checks golden queries return the expected page — including
+  a cross-user isolation check.
 
-```
-PDF -> Docling -> canonical blocks -> structural chunks -> embeddings
-  -> Postgres FTS -> pgvector -> hybrid search -> citations
-```
+### Verification note (what was actually run, not just written)
 
-Explicitly out of scope for the first Phase 2 slice: OCR, DOCX/PPTX
-parsing, concept extraction, the tutor. Acceptance: a golden query set
-against a fixture PDF returns the expected page in the top 10 results at
-an agreed rate, and a query with no answer in the sources returns an
-explicit `NOT_FOUND` rather than a hallucinated one.
+This phase's parsing, chunking, and embedding logic was developed and
+verified against real code before being committed — not written blind:
+
+- A fixture PDF was generated with `reportlab`, parsed with the actual
+  `pypdf`-based parser, and chunked with the actual chunker; the output
+  was inspected for correctness (headings detected, heading paths
+  correct, page ranges correct). The 21 tests in
+  `app/tests/modules/ingestion/` and `app/tests/modules/retrieval/test_ranking.py`
+  encode exactly this behavior and were run and passed locally with no
+  infrastructure (`pytest app/tests/modules/ingestion app/tests/modules/retrieval/test_ranking.py`
+  — 21 passed).
+- The real `BAAI/bge-m3` model was downloaded and run through the actual
+  `LocalBgeEmbeddingProvider`: it produced 1024-dimensional vectors and
+  correctly ranked a semantically relevant document above two irrelevant
+  ones for a real query (cosine similarity 0.72 for the relevant doc vs.
+  0.36 and 0.28 for the irrelevant ones).
+- The `pgvector` SQLAlchemy type and its HNSW index DDL were compiled and
+  checked against the Postgres dialect (confirmed it emits
+  `USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)`).
+- `ruff` and `mypy` were installed and run locally against the full
+  backend; all findings were fixed or (for one deliberate FastAPI/ruff
+  false-positive pattern) explicitly suppressed with a documented reason.
+
+What was **not** verified here: the full pipeline running inside Docker
+against live Postgres/Redis/MinIO (no Docker available in the environment
+that built this) — run `make test-api-slow` to confirm that end-to-end.
+
+## Phase 3 preview (next up)
+
+Notebook Mode (blueprint section 2.5, 20): notebooks as a collection of
+selected sources, grounded chat backed by the retrieval built in Phase 2,
+citations rendered from search results, notes. This is also where an LLM
+provider (`app/ai/providers/`, Gemini per blueprint section 21) enters the
+codebase for the first time — retrieved content must be treated as
+untrusted data, never instructions (blueprint section 10).

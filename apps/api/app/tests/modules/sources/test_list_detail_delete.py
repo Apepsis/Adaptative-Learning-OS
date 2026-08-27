@@ -17,7 +17,7 @@ _MINIMAL_PDF = b"%PDF-1.4\n%%EOF\n"
 
 async def _upload(client: AsyncClient, filename: str = "notes.pdf") -> dict:
     files = {"file": (filename, _MINIMAL_PDF, "application/pdf")}
-    with patch("app.modules.sources.service.ingest_source_placeholder"):
+    with patch("app.modules.sources.service.ingest_source_task"):
         response = await client.post("/v1/sources/upload", files=files)
     assert response.status_code == 202
     return response.json()
@@ -84,7 +84,7 @@ async def test_delete_source_removes_object_from_storage(
 async def test_reprocess_resets_status_and_requeues(client: AsyncClient) -> None:
     created = await _upload(client)
 
-    with patch("app.modules.sources.service.ingest_source_placeholder") as mock_task:
+    with patch("app.modules.sources.service.ingest_source_task") as mock_task:
         response = await client.post(f"/v1/sources/{created['id']}/reprocess")
 
     assert response.status_code == 202

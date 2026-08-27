@@ -7,11 +7,17 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.core.config import get_settings
-from app.core.exceptions import ConflictError, NotFoundError, PayloadTooLargeError, ValidationFailedError
+from app.core.exceptions import (
+    ConflictError,
+    NotFoundError,
+    PayloadTooLargeError,
+    ValidationFailedError,
+)
 from app.core.logging import configure_logging
 from app.core.telemetry import configure_telemetry
 from app.db.session import get_engine
 from app.modules.identity.router import router as identity_router
+from app.modules.retrieval.router import router as retrieval_router
 from app.modules.sources.router import router as sources_router
 from app.modules.subjects.router import router as subjects_router
 from app.storage.client import get_storage_client
@@ -59,6 +65,7 @@ async def _too_large_handler(_request: Request, exc: PayloadTooLargeError) -> JS
 app.include_router(identity_router)
 app.include_router(subjects_router)
 app.include_router(sources_router)
+app.include_router(retrieval_router)
 
 
 @app.get("/health/live", tags=["health"])

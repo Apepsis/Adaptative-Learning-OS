@@ -18,6 +18,9 @@ dependencies = [
   "httpx>=0.27",
   "structlog>=24.4",
   "python-multipart>=0.0.12",
+  "pypdf>=5.1",
+  "pgvector>=0.3.6",
+  "sentence-transformers>=3.2",
 ]
 
 [project.optional-dependencies]
@@ -39,3 +42,7 @@ packages = ["app"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["app/tests"]
+markers = [
+  "slow: exercises the real embedding model and/or a real parsed PDF; not run by default (see `make test-slow`).",
+]
+addopts = "-m 'not slow'"

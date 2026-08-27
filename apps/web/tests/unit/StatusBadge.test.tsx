@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { StatusBadge } from "@/components/StatusBadge";
 
 describe("StatusBadge", () => {
-  it("renders the QUEUED label", () => {
-    render(<StatusBadge status="QUEUED" />);
-    expect(screen.getByText("QUEUED")).toBeInTheDocument();
+  it("renders the READY label", () => {
+    render(<StatusBadge status="READY" />);
+    expect(screen.getByText("READY")).toBeInTheDocument();
   });
 
   it("renders the FAILED label", () => {

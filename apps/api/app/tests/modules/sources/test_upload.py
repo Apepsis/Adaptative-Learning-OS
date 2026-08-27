@@ -17,7 +17,7 @@ _ONE_PIXEL_PNG = base64.b64decode(
 async def test_upload_pdf_succeeds_and_enqueues_ingestion(client: AsyncClient) -> None:
     files = {"file": ("lecture-notes.pdf", _MINIMAL_PDF, "application/pdf")}
 
-    with patch("app.modules.sources.service.ingest_source_placeholder") as mock_task:
+    with patch("app.modules.sources.service.ingest_source_task") as mock_task:
         response = await client.post("/v1/sources/upload", files=files)
 
     assert response.status_code == 202
@@ -32,12 +32,12 @@ async def test_upload_pdf_succeeds_and_enqueues_ingestion(client: AsyncClient) -
 @pytest.mark.asyncio
 async def test_upload_duplicate_file_is_rejected(client: AsyncClient) -> None:
     files = {"file": ("notes.pdf", _MINIMAL_PDF, "application/pdf")}
-    with patch("app.modules.sources.service.ingest_source_placeholder"):
+    with patch("app.modules.sources.service.ingest_source_task"):
         first = await client.post("/v1/sources/upload", files=files)
     assert first.status_code == 202
 
     files_again = {"file": ("notes-renamed.pdf", _MINIMAL_PDF, "application/pdf")}
-    with patch("app.modules.sources.service.ingest_source_placeholder"):
+    with patch("app.modules.sources.service.ingest_source_task"):
         second = await client.post("/v1/sources/upload", files=files_again)
     assert second.status_code == 409
 
@@ -69,7 +69,7 @@ async def test_upload_rejects_oversized_file(client: AsyncClient) -> None:
     try:
         oversized_content = _MINIMAL_PDF + b"0" * (2 * 1024 * 1024)
         files = {"file": ("huge.pdf", oversized_content, "application/pdf")}
-        with patch("app.modules.sources.service.ingest_source_placeholder"):
+        with patch("app.modules.sources.service.ingest_source_task"):
             response = await client.post("/v1/sources/upload", files=files)
     finally:
         fastapi_app.dependency_overrides.pop(get_settings, None)

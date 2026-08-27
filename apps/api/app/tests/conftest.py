@@ -17,7 +17,7 @@ from app.storage.client import get_storage_client
 settings = get_settings()
 
 # Note on Celery: tests assert that ingestion is *enqueued* (mocking
-# `ingest_source_placeholder.delay`) rather than relying on the task's real
+# `ingest_source_task.delay`) rather than relying on the task's real
 # execution. Each test's DB session lives inside a rolled-back SAVEPOINT
 # (see db_session below); a real task run opens its own connection and
 # would never see that uncommitted data, so exercising the worker's actual
@@ -32,18 +32,19 @@ settings = get_settings()
 # avoids that class of flakiness entirely.
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture
 async def _ensure_buckets() -> None:
-    # Function-scoped (not session-scoped) to avoid pytest-asyncio event-loop
-    # scope mismatches. The calls are idempotent and cheap (local MinIO), so
-    # running them once per test has no meaningful cost.
+    # Not autouse: only tests that go through `client` (and therefore may
+    # upload/delete objects) need MinIO reachable. Pure-logic tests
+    # (parsing, chunking, ranking) must be able to run with no
+    # infrastructure at all.
     storage = get_storage_client()
     await storage.ensure_bucket(settings.s3_bucket_originals)
     await storage.ensure_bucket(settings.s3_bucket_previews)
 
 
 @pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSession]:
     """One test = one engine, one outer transaction, rolled back at teardown.
 
     App code calling session.commit() only commits a SAVEPOINT
@@ -82,8 +83,10 @@ async def other_user(db_session: AsyncSession) -> User:
 
 
 @pytest_asyncio.fixture
-async def client(db_session: AsyncSession, primary_user: User) -> AsyncGenerator[AsyncClient, None]:
-    async def _get_db_override() -> AsyncGenerator[AsyncSession, None]:
+async def client(
+    db_session: AsyncSession, primary_user: User, _ensure_buckets: None
+) -> AsyncGenerator[AsyncClient]:
+    async def _get_db_override() -> AsyncGenerator[AsyncSession]:
         yield db_session
 
     async def _get_current_user_override() -> User:
