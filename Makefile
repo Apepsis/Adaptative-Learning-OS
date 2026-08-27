@@ -1,4 +1,4 @@
-.PHONY: dev down build migrate makemigration test test-api test-api-slow test-web lint lint-api lint-web typecheck typecheck-api typecheck-web e2e logs shell-api shell-web
+.PHONY: dev down build migrate makemigration test test-api test-web lint lint-api lint-web typecheck typecheck-api typecheck-web e2e logs shell-api shell-web
 
 dev:
 	docker compose up --build
@@ -19,11 +19,6 @@ test: test-api test-web
 
 test-api:
 	docker compose run --rm api pytest
-
-# Runs tests marked "slow": real PDF parsing + real BGE-M3 embedding
-# inference. First run downloads the ~2GB model from Hugging Face.
-test-api-slow:
-	docker compose run --rm api pytest -m slow
 
 test-web:
 	docker compose run --rm web pnpm test -- --run

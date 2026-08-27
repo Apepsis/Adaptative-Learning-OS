@@ -42,17 +42,14 @@ class Settings(BaseSettings):
         "image/webp",
     ]
 
-    # AI / retrieval
+    # AI / retrieval (not exercised before Phase 2)
     embedding_provider: str = "bge_m3"
     embedding_dimension: int = 1024
     ai_provider: str = "gemini"
     gemini_api_key: str = ""
-    # Sensible working defaults, not a hardcoded requirement — override via
-    # env if Google renames/retires these (blueprint section 21.1: the
-    # model name lives in config, never in code).
-    fast_model: str = "gemini-2.5-flash"
-    reasoning_model: str = "gemini-2.5-pro"
-    vision_model: str = "gemini-2.5-flash"
+    fast_model: str = ""
+    reasoning_model: str = ""
+    vision_model: str = ""
     ollama_base_url: str = "http://host.docker.internal:11434"
     ollama_model: str = ""
 

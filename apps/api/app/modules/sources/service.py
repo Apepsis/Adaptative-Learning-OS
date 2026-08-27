@@ -1,7 +1,7 @@
 import hashlib
 import tempfile
 import uuid
-from typing import IO
+from typing import BinaryIO
 
 import magic
 import structlog
@@ -14,7 +14,7 @@ from app.modules.sources import policies
 from app.modules.sources.models import Source, SourceStatus
 from app.modules.sources.repository import SourceRepository
 from app.storage.client import StorageClient
-from app.workers.tasks.ingestion import ingest_source_task
+from app.workers.tasks.ingestion import ingest_source_placeholder
 
 logger = structlog.get_logger("sources.service")
 
@@ -22,15 +22,13 @@ _CHUNK_SIZE = 1024 * 1024  # 1 MiB, streamed from the client
 _SNIFF_BYTES = 4096  # enough for libmagic to identify PDF/DOCX/PPTX/images
 
 
-async def _buffer_and_hash(file: UploadFile, max_bytes: int) -> tuple[IO[bytes], str, int]:
+async def _buffer_and_hash(file: UploadFile, max_bytes: int) -> tuple[BinaryIO, str, int]:
     """Stream the upload to a spooled temp file while hashing it.
 
     Aborts as soon as the byte limit is crossed, so an oversized upload is
     never fully buffered before being rejected.
     """
-    # Deliberately not a `with` block: the caller owns this buffer's
-    # lifetime and closes it once uploaded to object storage.
-    buffer = tempfile.SpooledTemporaryFile(max_size=10 * 1024 * 1024)  # noqa: SIM115
+    buffer = tempfile.SpooledTemporaryFile(max_size=10 * 1024 * 1024)
     hasher = hashlib.sha256()
     total = 0
     while True:
@@ -106,7 +104,7 @@ async def upload_source(
     source = await repository.create(source)
     await session.commit()
 
-    ingest_source_task.delay(str(source.id))
+    ingest_source_placeholder.delay(str(source.id))
     logger.info("source.uploaded", source_id=str(source.id), size_bytes=size_bytes, mime_type=mime_type)
     return source
 
@@ -131,7 +129,7 @@ async def reprocess_source(
     source.status = SourceStatus.UPLOADED.value
     source.error_message = None
     await session.commit()
-    ingest_source_task.delay(str(source.id))
+    ingest_source_placeholder.delay(str(source.id))
     logger.info("source.reprocess_requested", source_id=str(source.id))
     return source
 

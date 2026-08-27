@@ -1,6 +1,6 @@
 import asyncio
 from functools import lru_cache
-from typing import IO
+from typing import BinaryIO
 
 import boto3
 from botocore.client import Config as BotoConfig
@@ -30,7 +30,7 @@ class StorageClient:
         )
 
     async def upload_fileobj(
-        self, *, bucket: str, key: str, fileobj: IO[bytes], content_type: str
+        self, *, bucket: str, key: str, fileobj: BinaryIO, content_type: str
     ) -> None:
         await asyncio.to_thread(
             self._client.upload_fileobj,
@@ -42,9 +42,6 @@ class StorageClient:
 
     async def delete_object(self, *, bucket: str, key: str) -> None:
         await asyncio.to_thread(self._client.delete_object, Bucket=bucket, Key=key)
-
-    async def download_to_file(self, *, bucket: str, key: str, destination: str) -> None:
-        await asyncio.to_thread(self._client.download_file, bucket, key, destination)
 
     async def object_exists(self, *, bucket: str, key: str) -> bool:
         try:

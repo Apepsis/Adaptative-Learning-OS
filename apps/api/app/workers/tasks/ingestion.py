@@ -4,17 +4,15 @@ import uuid
 import structlog
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.ai.embeddings.factory import get_embedding_provider
 from app.core.config import get_settings
-from app.modules.ingestion.parsers.pypdf_parser import PyPdfParser
-from app.modules.ingestion.service import ingest_source
-from app.storage.client import get_storage_client
+from app.modules.sources.models import SourceStatus
+from app.modules.sources.repository import SourceRepository
 from app.workers.celery_app import celery_app
 
 logger = structlog.get_logger("worker.ingestion")
 
 
-async def _run(source_id: str) -> None:
+async def _mark_queued(source_id: str) -> None:
     settings = get_settings()
     # A fresh engine per task run: the Celery worker process is not the
     # FastAPI event loop, so the app-wide async engine singleton (bound to
@@ -23,27 +21,25 @@ async def _run(source_id: str) -> None:
     try:
         session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
         async with session_factory() as session:
-            await ingest_source(
-                session,
-                get_storage_client(),
-                settings,
-                PyPdfParser(),
-                get_embedding_provider(),
-                source_id=uuid.UUID(source_id),
-            )
+            repository = SourceRepository(session)
+            source = await repository.get_by_id(uuid.UUID(source_id))
+            if source is None:
+                logger.warning("ingest_source.not_found", source_id=source_id)
+                return
+            source.status = SourceStatus.QUEUED.value
+            await session.commit()
     finally:
         await engine.dispose()
 
 
-@celery_app.task(name="ingestion.ingest_source", bind=True, max_retries=2, default_retry_delay=30)
-def ingest_source_task(self, source_id: str) -> None:
-    """Runs the real ingestion pipeline (blueprint section 8): parse,
-    chunk, embed, index. Scoped to native-text PDF for this slice — other
-    types are marked UNSUPPORTED, not retried."""
+@celery_app.task(name="ingestion.ingest_source_placeholder", bind=True, max_retries=3)
+def ingest_source_placeholder(self, source_id: str) -> None:
+    """Placeholder for the real ingestion pipeline (blueprint section 8).
+
+    Phase 1 only proves the async plumbing end-to-end: a source is uploaded,
+    a task is enqueued, and the task marks it QUEUED. Parsing, OCR,
+    chunking, and embedding are Phase 2 work (see docs/architecture/roadmap.md).
+    """
     logger.info("ingest_source.received", source_id=source_id)
-    try:
-        asyncio.run(_run(source_id))
-    except Exception as exc:
-        logger.warning("ingest_source.retrying", source_id=source_id, attempt=self.request.retries)
-        raise self.retry(exc=exc) from exc
-    logger.info("ingest_source.done", source_id=source_id)
+    asyncio.run(_mark_queued(source_id))
+    logger.info("ingest_source.queued", source_id=source_id)

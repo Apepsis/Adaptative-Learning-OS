@@ -10,12 +10,6 @@ WORKDIR /app
 # Copied whole (not just pyproject.toml) because the hatchling editable
 # install needs the `app` package present to resolve at install time; the
 # bind-mounted volume in docker-compose.yml keeps local edits live anyway.
-#
-# This install pulls in sentence-transformers (-> PyTorch CPU) for local
-# BGE-M3 embeddings (blueprint section 9.4) — expect this layer to take
-# several minutes and a few GB on first build. The model weights
-# themselves (~2GB) are downloaded separately, at first ingestion, not
-# at build time; see docs/runbooks/windows-local.md.
 COPY apps/api/ ./
 RUN pip install --no-cache-dir -e ".[dev]"
 

@@ -6,11 +6,7 @@ extend-exclude = ["apps/api/app/db/migrations/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
-# E501: line length is handled by the formatter, not worth blocking on.
-# B008: FastAPI's `Depends(...)` in a default argument is the framework's
-# intended dependency-injection pattern, not the mutable-default-argument
-# bug this rule exists to catch.
-ignore = ["E501", "B008"]
+ignore = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

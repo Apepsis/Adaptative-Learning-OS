@@ -1,10 +1,10 @@
 # Adaptive Learning OS
 
-A personal **Learning Operating System**: upload study material (PDFs,
-slides, photos of notes), get a searchable, cited knowledge base, a concept
-curriculum extracted from it, lessons/flashcards/a study guide generated
-from that, grounded chat over your sources, and practice questions with
-timing, hints, and error feedback — all from the same domain model.
+A personal **Learning Operating System**: a unified platform for ingesting study
+material (PDFs, slides, photos of notes, web pages, YouTube videos), turning it
+into a searchable, cited knowledge base, structuring it into a concept
+curriculum, and — in later phases — practicing against it, tracking mastery,
+and adaptively planning study time.
 
 This repository follows the architecture defined in
 [`docs/architecture/blueprint.md`](docs/architecture/blueprint.md): a modular
@@ -12,16 +12,10 @@ monolith backend, a Next.js frontend, Postgres/pgvector as the single source
 of domain truth, and object storage as the source of truth for original
 files.
 
-> **Current status: MVP complete (Phases 0-6) + Phase 7** (blueprint
-> section 43 for the MVP; section 42's Phase 7 for the learner model).
-> Upload → parse/search → concept graph → lessons/flashcards/study guide →
-> grounded chat with citations → practice → **real BKT mastery per
-> concept, FSRS-scheduled flashcard review, and detected error
-> patterns**, end to end. See
+> **Current status:** Phase 0 (repository foundation) + Phase 1 (Source
+> Library: upload, storage, status tracking). See
 > [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) for what
-> was built in each phase and what's next (the OR-Tools adaptive planner,
-> olympiad-depth verification, integrations, hardening — a distinct,
-> not-yet-started continuation of this second stage).
+> comes next (parsing/RAG, curriculum builder, practice, planner, tutor).
 
 ## Why a static site *and* a full backend in the same repo?
 
@@ -74,17 +68,16 @@ apps/api/     FastAPI backend (modular monolith) + Celery workers
 infra/        Dockerfiles and deployment infrastructure
 docs/         Architecture, ADRs, runbooks
 site/         Static landing page published to GitHub Pages
+.claude/      Claude Code agents, commands, and project rules
 ```
 
 ## Architecture rules
 
-The architecture constraints for this codebase are documented in
-[`docs/architecture/blueprint.md`](docs/architecture/blueprint.md) and the
-ADRs under [`docs/adr/`](docs/adr/). In short: routers never touch the
-database directly, LLM providers are only called through `app/ai/providers`,
-original files never go into Postgres, every schema change ships an Alembic
-migration, and retrieved source content is always treated as untrusted data,
-never as instructions.
+The non-negotiable rules for this codebase live in [`CLAUDE.md`](CLAUDE.md).
+In short: routers never touch the database directly, LLM providers are only
+called through `app/ai/providers`, original files never go into Postgres,
+every schema change ships an Alembic migration, and retrieved source content
+is always treated as untrusted data, never as instructions.
 
 ## License
 
