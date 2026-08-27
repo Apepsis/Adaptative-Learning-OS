@@ -1,6 +1,10 @@
 import type {
+  BuildCurriculumResponse,
   ChatMessage,
   ChatMessageListResponse,
+  Concept,
+  ConceptDetail,
+  ConceptListResponse,
   HealthReadyResponse,
   Note,
   NoteListResponse,
@@ -62,6 +66,10 @@ export function createSubject(data: { name: string; subject_type?: string }): Pr
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
+}
+
+export function getSubject(subjectId: string): Promise<Subject> {
+  return request<Subject>(`/v1/subjects/${subjectId}`);
 }
 
 export function listSources(subjectId?: string): Promise<SourceListResponse> {
@@ -200,5 +208,47 @@ export function sendChatMessage(notebookId: string, message: string): Promise<Ch
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify({ message }),
+  });
+}
+
+export function buildCurriculum(subjectId: string): Promise<BuildCurriculumResponse> {
+  return request<BuildCurriculumResponse>(`/v1/subjects/${subjectId}/curriculum/build`, {
+    method: "POST",
+  });
+}
+
+export function listConcepts(subjectId: string): Promise<ConceptListResponse> {
+  return request<ConceptListResponse>(`/v1/subjects/${subjectId}/concepts`);
+}
+
+export function getConcept(subjectId: string, conceptId: string): Promise<ConceptDetail> {
+  return request<ConceptDetail>(`/v1/subjects/${subjectId}/concepts/${conceptId}`);
+}
+
+export function updateConcept(
+  subjectId: string,
+  conceptId: string,
+  data: { canonical_name?: string; definition?: string; status?: string },
+): Promise<Concept> {
+  return request<Concept>(`/v1/subjects/${subjectId}/concepts/${conceptId}`, {
+    method: "PATCH",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteConcept(subjectId: string, conceptId: string): Promise<void> {
+  return request<void>(`/v1/subjects/${subjectId}/concepts/${conceptId}`, { method: "DELETE" });
+}
+
+export function mergeConcepts(
+  subjectId: string,
+  primaryConceptId: string,
+  absorbConceptId: string,
+): Promise<Concept> {
+  return request<Concept>(`/v1/subjects/${subjectId}/concepts/${primaryConceptId}/merge`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ absorb_concept_id: absorbConceptId }),
   });
 }

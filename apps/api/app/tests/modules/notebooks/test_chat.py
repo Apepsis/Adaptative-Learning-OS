@@ -14,7 +14,7 @@ from app.main import app as fastapi_app
 from app.modules.ingestion.parsers.pypdf_parser import PyPdfParser
 from app.modules.ingestion.service import ingest_source
 from app.storage.client import get_storage_client
-from app.tests.modules.notebooks.fakes import FakeEmbeddingProvider, FakeGenerationProvider
+from app.tests.fakes import FakeEmbeddingProvider, FakeGenerationProvider
 
 FIXTURE_PATH = Path(__file__).parent.parent.parent / "fixtures" / "kinematics.pdf"
 

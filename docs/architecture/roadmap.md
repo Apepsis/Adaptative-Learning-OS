@@ -16,7 +16,7 @@ next one.
 | 1 | Library (source upload) | ✅ Done |
 | 2 | Parsing + search (native PDF, chunks, embeddings, hybrid retrieval) | ✅ Done |
 | 3 | Notebook Mode (grounded chat over sources) | ✅ Done |
-| 4 | Curriculum Builder (concept graph) | ⬜ Not started |
+| 4 | Curriculum Builder (concept graph) | ✅ Done |
 | 5 | Learn UI (lessons, flashcards, definitions) | ⬜ Not started |
 | 6 | Question Bank + basic practice | ⬜ Not started |
 | 7 | Learner Model (BKT, FSRS, error patterns) | ⬜ Not started |
@@ -180,11 +180,64 @@ that built this) — run `make test-api-slow` to confirm that end-to-end.
   NOT_FOUND/RELATED_ONLY classification. Worth adding when the tutor
   (Phase 6+) needs it more precisely.
 
-## Phase 4 preview (next up)
+## What Phase 4 actually built
 
-Curriculum Builder (blueprint section 11): subject-scoped concept
-extraction from sources (LLM + validation), concept graph with
-prerequisite edges, a module/topic tree. This is where `concepts`,
-`concept_edges`, and `modules` tables enter the schema, and where the
-`subjects` module (currently just a label on a source) becomes the
-organizing structure the rest of the curriculum hangs off of.
+- `app/modules/curriculum/`: `concepts`, `concept_aliases`, `concept_edges`,
+  `concept_evidence`. **No separate `curricula`/`modules` tables** — see
+  [ADR 0003](../adr/0003-concept-graph-doubles-as-topic-tree.md): a
+  `concept_type` field ("topic"/"subtopic"/"concept"/"skill") plus
+  `PART_OF` edges give a navigable topic tree as an emergent view over the
+  concept graph, rather than a second schema nothing would consume before
+  Phase 5.
+- `POST /v1/subjects/{id}/curriculum/build`: samples up to 60 chunks from
+  the subject's processed sources (syllabus-tagged sources prioritized),
+  asks Gemini for **structured JSON output** (`response_schema` +
+  `response.parsed` — this API shape was verified by installing
+  `google-genai` and inspecting the real field definitions, same as the
+  chat provider in Phase 3), and persists concepts/edges/evidence.
+- **Normalization**: exact-name and alias matching only (blueprint
+  11.5's first two steps) — embedding-similarity fuzzy matching and LLM
+  adjudication for ambiguous near-duplicates are deferred and listed as a
+  known gap below. Re-running "Build curriculum" after adding more
+  sources updates existing concepts rather than duplicating them
+  (verified by a test that runs extraction twice and checks the concept
+  count stays the same).
+- **Cycle rejection is real, not just described**: `app/modules/curriculum/graph.py`
+  is a pure, dependency-free graph traversal, checked directly with 6
+  unit tests, and a build-time test that feeds the extractor a
+  deliberately cyclic pair of edges (A→B→A) and confirms only one is
+  persisted.
+- **Manual edit/merge** (the other half of the Phase 4 DoD): approve/
+  reject a proposed concept, edit its name/definition, delete it, or
+  merge one concept into another — merge reassigns edges and evidence
+  (dropping anything that would become a self-loop or duplicate) and adds
+  the absorbed concept's name as an alias of the surviving one.
+- Frontend: `/subjects/[id]` — a "Build curriculum" button with a result
+  summary, concepts grouped into Topics/Subtopics/Concepts/Skills
+  sections, each with inline approve/reject, a relationships expander
+  (lazy-loaded), and a merge-into selector.
+- Tests: 6 fast, dependency-free tests for `would_create_cycle`, plus
+  build/CRUD/merge/cycle/cross-user-isolation tests using
+  `FakeGenerationProvider.structured_response` (extended in this phase to
+  support `generate_structured`, relocated to the shared
+  `app/tests/fakes.py` since both notebooks and curriculum tests need it
+  now). ruff and mypy clean across all 98 backend files.
+
+### Known gaps
+
+- Concept normalization is exact-match only — near-duplicate concepts
+  extracted with slightly different names (e.g. "Newton's 2nd Law" vs
+  "Newton's second law of motion") won't auto-merge; the manual merge UI
+  is the mitigation until embedding-similarity dedup lands.
+- No syllabus-driven ordering (blueprint 11.3): if a syllabus source is
+  present, extraction reads it like any other source rather than treating
+  it as the authoritative structure to map everything else onto.
+- Confidence scores on edges are stored but not surfaced or acted on
+  anywhere yet (always defaults to 1.0 from the model).
+
+## Phase 5 preview (next up)
+
+Learn UI (blueprint section 5, 22.3): lessons, definitions, flashcards,
+and a study guide surfaced from the concept graph and its evidence —
+turning the (currently API-only-visualized) curriculum into something a
+student actually studies from, not just reviews.

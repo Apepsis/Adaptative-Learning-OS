@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createSubject, listSubjects } from "@/lib/api-client";
@@ -72,13 +73,18 @@ export default function SubjectsPage() {
 
       <ul className="grid gap-3 sm:grid-cols-2">
         {data?.items.map((subject) => (
-          <li key={subject.id} className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="font-medium">{subject.name}</p>
-            {subject.subject_type && (
-              <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
-                {subject.subject_type}
-              </p>
-            )}
+          <li key={subject.id}>
+            <Link
+              href={`/subjects/${subject.id}`}
+              className="block rounded-lg border border-slate-200 bg-white p-4 transition hover:border-brand-500 hover:shadow"
+            >
+              <p className="font-medium">{subject.name}</p>
+              {subject.subject_type && (
+                <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
+                  {subject.subject_type}
+                </p>
+              )}
+            </Link>
           </li>
         ))}
       </ul>

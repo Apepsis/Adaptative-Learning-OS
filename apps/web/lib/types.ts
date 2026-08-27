@@ -122,3 +122,45 @@ export interface ChatMessage {
 export interface ChatMessageListResponse {
   items: ChatMessage[];
 }
+
+export type ConceptType = "topic" | "subtopic" | "concept" | "skill";
+export type ConceptStatus = "PROPOSED" | "APPROVED" | "MERGED" | "REJECTED";
+
+export interface Concept {
+  id: string;
+  canonical_name: string;
+  slug: string;
+  definition: string | null;
+  concept_type: ConceptType;
+  status: ConceptStatus;
+  created_at: string;
+}
+
+export interface ConceptListResponse {
+  items: Concept[];
+  total: number;
+}
+
+export interface ConceptEdge {
+  id: string;
+  source_concept_id: string;
+  target_concept_id: string;
+  relation: string;
+  confidence: number;
+  provenance_type: string;
+  approved: boolean;
+}
+
+export interface ConceptDetail extends Concept {
+  outgoing_edges: ConceptEdge[];
+  incoming_edges: ConceptEdge[];
+  evidence_chunk_ids: string[];
+}
+
+export interface BuildCurriculumResponse {
+  concepts_created: number;
+  concepts_updated: number;
+  edges_created: number;
+  edges_skipped_cycle: number;
+  chunks_considered: number;
+}
