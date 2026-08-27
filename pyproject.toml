@@ -1,0 +1,25 @@
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["apps/api/app"]
+extend-exclude = ["apps/api/app/db/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
+# E501: line length is handled by the formatter, not worth blocking on.
+# B008: FastAPI's `Depends(...)` in a default argument is the framework's
+# intended dependency-injection pattern, not the mutable-default-argument
+# bug this rule exists to catch.
+ignore = ["E501", "B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.13"
+mypy_path = "apps/api"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+disallow_untyped_defs = false
+warn_unused_ignores = true
+exclude = ["apps/api/app/db/migrations/versions"]

@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Adaptive Learning OS</title>
+<meta name="description" content="A personal Learning Operating System: a source library with citations, a concept curriculum, adaptive practice, and a planner — unified in one product." />
+<style>
+  :root {
+    --bg: #f8fafc;
+    --bg-alt: #ffffff;
+    --ink: #0f172a;
+    --ink-soft: #475569;
+    --border: #e2e8f0;
+    --brand: #2c56d1;
+    --brand-ink: #1c3a94;
+    --brand-soft: #eef3ff;
+    --code-bg: #0f172a;
+    --code-ink: #e2e8f0;
+    --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1220;
+      --bg-alt: #121a2b;
+      --ink: #e8edf7;
+      --ink-soft: #9aa7bd;
+      --border: #223049;
+      --brand: #6d8cf5;
+      --brand-ink: #b9c8fb;
+      --brand-soft: #16213a;
+      --code-bg: #060a13;
+      --code-ink: #cbd5e1;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  a { color: var(--brand); }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  header.site {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  header.site .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--ink);
+    font-size: 15px;
+  }
+  .brand .mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-ink));
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  nav.top { display: flex; gap: 22px; align-items: center; }
+  nav.top a { color: var(--ink-soft); text-decoration: none; font-size: 14px; font-weight: 500; }
+  nav.top a:hover { color: var(--ink); }
+  nav.top a.cta {
+    color: white;
+    background: var(--brand);
+    padding: 7px 14px;
+    border-radius: 7px;
+  }
+  nav.top a.cta:hover { background: var(--brand-ink); }
+
+  .hero { padding: 88px 0 64px; }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand-ink);
+    background: var(--brand-soft);
+    border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent);
+    padding: 5px 12px;
+    border-radius: 999px;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: #16a34a; }
+  h1 {
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin: 20px 0 18px;
+    max-width: 18ch;
+  }
+  .lede { font-size: 19px; color: var(--ink-soft); max-width: 60ch; margin: 0 0 32px; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: 9px;
+    font-weight: 600;
+    font-size: 14.5px;
+    text-decoration: none;
+    border: 1px solid transparent;
+  }
+  .btn.primary { background: var(--brand); color: white; }
+  .btn.primary:hover { background: var(--brand-ink); }
+  .btn.ghost { border-color: var(--border); color: var(--ink); }
+  .btn.ghost:hover { border-color: var(--brand); color: var(--brand); }
+
+  .loop {
+    margin-top: 56px;
+    border: 1px solid var(--border);
+    background: var(--bg-alt);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+    overflow-x: auto;
+  }
+  .loop-title { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 14px; }
+  .loop-chain {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    min-width: max-content;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .loop-chain .node {
+    padding: 7px 12px;
+    background: var(--brand-soft);
+    color: var(--brand-ink);
+    border-radius: 7px;
+    white-space: nowrap;
+  }
+  .loop-chain .arrow { color: var(--ink-soft); }
+
+  section { padding: 64px 0; border-top: 1px solid var(--border); }
+  .section-head { max-width: 62ch; margin-bottom: 40px; }
+  .section-head .kicker { font-size: 13px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: 0.06em; }
+  .section-head h2 { font-size: 28px; margin: 8px 0 10px; letter-spacing: -0.01em; }
+  .section-head p { color: var(--ink-soft); font-size: 16px; margin: 0; }
+
+  .pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+  .pillar {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .pillar .num { font-size: 12px; font-weight: 700; color: var(--brand); }
+  .pillar h3 { font-size: 16px; margin: 10px 0 8px; }
+  .pillar p { font-size: 14px; color: var(--ink-soft); margin: 0; }
+
+  .stack { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .stack-group {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    background: var(--bg-alt);
+  }
+  .stack-group h4 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+  .stack-group ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .stack-group li { font-size: 14px; }
+  .stack-group code { font-size: 12.5px; background: var(--brand-soft); color: var(--brand-ink); padding: 1px 6px; border-radius: 5px; }
+
+  .roadmap { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--bg-alt); }
+  .phase {
+    display: grid;
+    grid-template-columns: 84px 1fr 110px;
+    gap: 16px;
+    align-items: center;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .phase:first-child { border-top: none; }
+  .phase .id { font-weight: 700; color: var(--ink-soft); font-size: 13px; }
+  .phase .name { font-weight: 500; }
+  .phase .status {
+    justify-self: end;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-align: center;
+  }
+  .status.done { background: #dcfce7; color: #166534; }
+  .status.next { background: var(--brand-soft); color: var(--brand-ink); }
+  .status.later { background: color-mix(in srgb, var(--border) 60%, transparent); color: var(--ink-soft); }
+  @media (prefers-color-scheme: dark) {
+    .status.done { background: #113322; color: #6ee7a8; }
+  }
+
+  .honesty {
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .honesty p { margin: 0 0 12px; color: var(--ink-soft); font-size: 15px; }
+  .honesty p:last-child { margin-bottom: 0; }
+  .honesty strong { color: var(--ink); }
+
+  pre.code {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 18px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+
+  footer { padding: 40px 0 64px; }
+  footer .row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; color: var(--ink-soft); font-size: 13px; }
+  footer a { color: var(--ink-soft); }
+  footer a:hover { color: var(--brand); }
+
+  @media (max-width: 640px) {
+    nav.top a:not(.cta) { display: none; }
+    .phase { grid-template-columns: 60px 1fr; }
+    .phase .status { grid-column: 2; justify-self: start; margin-top: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap bar">
+    <a class="brand" href="#top">
+      <span class="mark">A</span>
+      Adaptive Learning OS
+    </a>
+    <nav class="top">
+      <a href="#loop">How it fits together</a>
+      <a href="#stack">Stack</a>
+      <a href="#roadmap">Roadmap</a>
+      <a class="cta" href="https://github.com/Apepsis/Adaptative-Learning-OS">View on GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" style="border-top:none; padding-top: 56px;">
+    <div class="wrap">
+      <span class="eyebrow"><span class="dot"></span> MVP complete (Phases 0-6) — Phase 7 learner model shipped</span>
+      <h1>A personal Learning Operating System, not four apps glued together.</h1>
+      <p class="lede">
+        Upload a textbook or a photo of a whiteboard. It gets parsed,
+        searched, and turned into a concept graph — then into lessons,
+        flashcards, a study guide, grounded chat with citations, and
+        practice questions with hints and error feedback. Everything
+        traces back to exactly where it came from.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/Apepsis/Adaptative-Learning-OS">Get the code</a>
+        <a class="btn ghost" href="https://github.com/Apepsis/Adaptative-Learning-OS/blob/main/docs/architecture/blueprint.md">Read the architecture</a>
+      </div>
+
+      <div class="loop" id="loop">
+        <div class="loop-title">The loop this product is built around</div>
+        <div class="loop-chain">
+          <span class="node">Source</span><span class="arrow">→</span>
+          <span class="node">Concept</span><span class="arrow">→</span>
+          <span class="node">Lesson</span><span class="arrow">→</span>
+          <span class="node">Question</span><span class="arrow">→</span>
+          <span class="node">Attempt</span><span class="arrow">→</span>
+          <span class="node">Error</span><span class="arrow">→</span>
+          <span class="node">Mastery</span><span class="arrow">→</span>
+          <span class="node">Planner</span><span class="arrow">→</span>
+          <span class="node">Next session</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">Four patterns, one domain</div>
+        <h2>What it replaces</h2>
+        <p>Each of these exists as a separate product today. Here they share one database, one concept graph, and one interface instead of four disconnected silos.</p>
+      </div>
+      <div class="pillars">
+        <div class="pillar">
+          <div class="num">01</div>
+          <h3>Notebook / RAG</h3>
+          <p>Upload PDFs, slides, photos, web pages, and YouTube videos. Every answer cites the exact page or timestamp it came from.</p>
+        </div>
+        <div class="pillar">
+          <div class="num">02</div>
+          <h3>Curriculum &amp; practice</h3>
+          <p>Topics, lessons, definitions, flashcards, question banks, and past papers — generated from your own sources, not a generic template.</p>
+        </div>
+        <div class="pillar">
+          <div class="num">03</div>
+          <h3>Adaptive planner</h3>
+          <p>Exam dates, availability, and evidence of what you actually know feed a schedule that reoptimizes without churning your calendar every day.</p>
+        </div>
+        <div class="pillar">
+          <div class="num">04</div>
+          <h3>Deep training</h3>
+          <p>A depth scale from recall to olympiad-level transfer, gated on evidence — not on having merely read a chapter.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="stack">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">Local-first, cloud-ready</div>
+        <h2>Stack</h2>
+        <p>Runs entirely on a laptop via Docker Compose — no Kubernetes, no Kafka, no mandatory cloud dependency. The same code scales to a VPS or managed cloud later.</p>
+      </div>
+      <div class="stack">
+        <div class="stack-group">
+          <h4>Frontend</h4>
+          <ul>
+            <li><code>Next.js</code> App Router</li>
+            <li><code>TypeScript</code> + Tailwind</li>
+            <li><code>TanStack Query</code></li>
+          </ul>
+        </div>
+        <div class="stack-group">
+          <h4>Backend</h4>
+          <ul>
+            <li><code>FastAPI</code> modular monolith</li>
+            <li><code>SQLAlchemy 2</code> + Alembic</li>
+            <li><code>Celery</code> + Redis</li>
+          </ul>
+        </div>
+        <div class="stack-group">
+          <h4>Data</h4>
+          <ul>
+            <li><code>PostgreSQL</code> + pgvector</li>
+            <li><code>MinIO</code> / S3-compatible storage</li>
+            <li>Postgres full-text search</li>
+          </ul>
+        </div>
+        <div class="stack-group">
+          <h4>Intelligence (later phases)</h4>
+          <ul>
+            <li>Docling + PaddleOCR</li>
+            <li>BKT + FSRS + OR-Tools</li>
+            <li>Model-agnostic AI router</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="roadmap">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">Built phase by phase, on purpose</div>
+        <h2>Roadmap</h2>
+        <p>The architecture explicitly warns against building everything at once. Each phase shipped a working vertical slice with its own tests before the next one started — Phases 0-6 are the blueprint's own MVP definition, and Phase 7 is the first slice of the second stage on top of it.</p>
+      </div>
+      <div class="roadmap">
+        <div class="phase"><span class="id">P0</span><span class="name">Repository foundation</span><span class="status done">Done</span></div>
+        <div class="phase"><span class="id">P1</span><span class="name">Library — source upload &amp; status</span><span class="status done">Done</span></div>
+        <div class="phase"><span class="id">P2</span><span class="name">Parsing + hybrid search (RAG)</span><span class="status done">Done</span></div>
+        <div class="phase"><span class="id">P3</span><span class="name">Notebook Mode — grounded chat</span><span class="status done">Done</span></div>
+        <div class="phase"><span class="id">P4</span><span class="name">Curriculum builder — concept graph</span><span class="status done">Done</span></div>
+        <div class="phase"><span class="id">P5</span><span class="name">Learn UI — lessons &amp; flashcards</span><span class="status done">Done</span></div>
+        <div class="phase"><span class="id">P6</span><span class="name">Question bank &amp; practice</span><span class="status done">Done</span></div>
+        <div class="phase"><span class="id">P7</span><span class="name">Learner model — BKT mastery, FSRS review, error patterns</span><span class="status done">Done</span></div>
+        <div class="phase"><span class="id">P8–12</span><span class="name">Adaptive planner, olympiad depth, integrations, hardening</span><span class="status later">Not started</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <div class="kicker">Read this before you click "Deploy"</div>
+        <h2>Why this page is static and the app isn't</h2>
+      </div>
+      <div class="honesty">
+        <p>
+          <strong>GitHub Pages only serves static files.</strong> It cannot
+          run the FastAPI backend, PostgreSQL, Redis, or Celery workers
+          this project needs — so this page is documentation, not the
+          product.
+        </p>
+        <p>
+          The real application lives in <code>apps/web</code> and
+          <code>apps/api</code> in the repository. Run it locally with
+          Docker, or deploy it to a host that supports servers — Render,
+          Railway, Fly.io, or a VPS.
+        </p>
+        <pre class="code">git clone https://github.com/Apepsis/Adaptative-Learning-OS
+cd Adaptative-Learning-OS
+cp .env.example .env
+make dev
+# web:  http://localhost:3000
+# api:  http://localhost:8000/health/ready</pre>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap row">
+    <span>MIT licensed. Built following an architecture blueprint, phase by phase.</span>
+    <span>
+      <a href="https://github.com/Apepsis/Adaptative-Learning-OS">GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/Apepsis/Adaptative-Learning-OS/blob/main/docs/architecture/roadmap.md">Roadmap</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>
