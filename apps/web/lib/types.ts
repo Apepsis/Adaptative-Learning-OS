@@ -198,3 +198,84 @@ export interface StudyGuide {
   content: string;
   updated_at: string;
 }
+
+export type QuestionType = "mcq" | "numeric" | "short_answer";
+
+export interface QuestionOption {
+  id: string;
+  text: string;
+}
+
+export interface Question {
+  id: string;
+  subject_id: string;
+  concept_id: string | null;
+  origin: string;
+  question_type: QuestionType;
+  stem: string;
+  options: QuestionOption[] | null;
+  correct_option_id: string | null;
+  numeric_answer: number | null;
+  numeric_tolerance: number | null;
+  units: string | null;
+  sample_answer: string | null;
+  hints: string[] | null;
+  solution_text: string | null;
+  verification_state: string;
+  created_at: string;
+}
+
+export interface QuestionListResponse {
+  items: Question[];
+  total: number;
+}
+
+export interface QuestionPracticeView {
+  id: string;
+  question_type: QuestionType;
+  stem: string;
+  options: QuestionOption[] | null;
+  units: string | null;
+  hint_count: number;
+}
+
+export interface GenerateQuestionsResponse {
+  items: Question[];
+}
+
+export interface PracticeSessionInfo {
+  id: string;
+  subject_id: string;
+  total_questions: number;
+  current_index: number;
+  completed_at: string | null;
+}
+
+export interface PracticeSessionCurrent {
+  session: PracticeSessionInfo;
+  question: QuestionPracticeView | null;
+}
+
+export interface AttemptErrorInfo {
+  error_type: string;
+  explanation: string;
+}
+
+export interface AttemptResult {
+  id: string;
+  correctness: "correct" | "partial" | "incorrect";
+  score: number;
+  max_score: number;
+  feedback: string | null;
+  correct_option_id: string | null;
+  numeric_answer: number | null;
+  sample_answer: string | null;
+  solution_text: string | null;
+  errors: AttemptErrorInfo[];
+}
+
+export interface HintResponse {
+  hint_text: string | null;
+  hints_used: number;
+  hints_remaining: number;
+}

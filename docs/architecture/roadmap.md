@@ -18,7 +18,7 @@ next one.
 | 3 | Notebook Mode (grounded chat over sources) | ✅ Done |
 | 4 | Curriculum Builder (concept graph) | ✅ Done |
 | 5 | Learn UI (lessons, flashcards, definitions) | ✅ Done |
-| 6 | Question Bank + basic practice | ⬜ Not started |
+| 6 | Question Bank + basic practice | ✅ Done |
 | 7 | Learner Model (BKT, FSRS, error patterns) | ⬜ Not started |
 | 8 | Planner v1 (OR-Tools) | ⬜ Not started |
 | 9 | Adaptive loop (nightly replanning, stability horizon) | ⬜ Not started |
@@ -27,9 +27,16 @@ next one.
 | 12 | Hardening (security, evals, backups, observability) | ⬜ Not started |
 
 **MVP scope** (blueprint section 43) is Phases 0-5 plus basic practice
-from Phase 6. Everything else is deliberately deferred. **Phases 0-5 are
-done** — Phase 6's basic practice (question bank + attempts) is the last
-piece before the blueprint's own MVP definition is complete.
+from Phase 6. **That MVP is now complete.** The full loop described in
+the blueprint's conclusion (section 54) is real, end to end: upload a
+source → it's parsed, chunked, embedded, and searchable → concepts are
+extracted into a graph → lessons/definitions/flashcards/a study guide are
+generated from it → you can ask questions grounded in your sources with
+citations → you can practice questions (written or generated) with
+hints, timing, and error feedback. Phases 7-12 (adaptive mastery
+modeling, FSRS, the OR-Tools planner, olympiad-depth verification,
+external integrations, production hardening) are a distinct, larger
+second stage — not started, and not silently implied by anything above.
 
 ## What Phase 0 + 1 actually built
 
@@ -283,11 +290,74 @@ generation pass:
   is shown as extracted plain text (matches Phase 2's pypdf-based parser,
   which doesn't preserve formula structure either).
 
-## Phase 6 preview (next up)
+## What Phase 6 actually built — MVP complete
 
-Question Bank + basic practice (blueprint section 13-14): importing/
-authoring questions (MCQ, numeric, short answer first), a practice
-session flow, attempt tracking, hints, and basic automated grading. This
-is the last piece of the blueprint's own MVP definition (section 43) —
-completing it closes the full loop: upload → understand → structure →
-learn → ask with citations → **practice**.
+- `app/modules/practice/`: `questions`, `practice_sessions`, `attempts`,
+  `attempt_errors`. Type-specific columns (not a generic
+  `answer_schema`/`markscheme` JSONB) for MCQ/numeric/short-answer — see
+  [ADR 0005](../adr/0005-simplified-question-schema.md) for why.
+- **Grading order matches blueprint section 14.2 exactly**: MCQ and
+  numeric are graded by pure, dependency-free functions
+  (`app/modules/practice/grading.py`, 8 unit tests) — no LLM call at all.
+  Only short answer needs one, and it does grading *and* error
+  classification in a single structured call rather than two.
+- **Manual authoring and LLM generation both produce real questions**:
+  generation is grounded in one concept's evidence (reusing Phase 4's
+  `get_concept`), using the same `generate_structured` + `response.parsed`
+  pattern as curriculum extraction. Generated questions get a
+  **structural-validity check** (options well-formed and exactly one
+  correct, tolerance non-negative, a sample answer present) before being
+  marked `verified` — not the full independent-solver verification
+  blueprint section 13.6 describes for STEM types (no solver is built).
+  Anything that fails is persisted `quarantined` for review, and — this
+  was a real bug caught during testing, not just a design intention —
+  **excluded from practice session selection** by an explicit repository
+  filter, with a regression test proving a quarantined question can't be
+  picked.
+- **Basic error classification** (the DoD's explicit fourth requirement):
+  every non-correct attempt gets a one-sentence classification from the
+  blueprint's own taxonomy (`app/modules/practice/models.py`'s
+  `AttemptError`), grounded in the actual correct-vs-submitted difference
+  — never a guess dressed up as a specific category.
+- **Hints are revealed one at a time**, not exposed with the question
+  (`GET /questions/{id}/hints/{index}`), matching blueprint 20.5.
+  Practice sessions never leak the answer key while a question is active
+  — `QuestionPracticeView` is a deliberately narrower schema than the
+  bank-management `QuestionRead`.
+- Frontend: `/subjects/[id]/questions` (bank list, manual authoring form,
+  generate-from-concept form, start-session button) and
+  `/subjects/[id]/practice/[sessionId]` (the actual practice flow — timed
+  answer submission, progressive hints, graded feedback with error
+  explanation, session completion).
+- Tests: 8 pure grading tests, question-shape validation, session
+  creation/progression/completion, MCQ/numeric/short-answer attempt
+  grading (correct and incorrect paths), solution-reveal handling,
+  cross-user authorization, and the quarantine-exclusion regression.
+  ruff and mypy clean across all 122 backend files.
+
+### Known gaps (deliberately deferred, not silently skipped)
+
+- No independent-solver STEM verification (blueprint 13.6) — structural
+  validity only.
+- No streaming grading/generation responses.
+- No misconception catalog linking recurring error patterns across
+  attempts (blueprint section 15.4) — each `AttemptError` stands alone.
+- No item origin beyond `user`/`generated` (no official/textbook/teacher
+  import pipeline, blueprint 13.1-13.2).
+- No question difficulty auto-classification (`difficulty_level` exists
+  as a column but nothing populates it yet — that's Phase 10's L0-L5
+  depth scale).
+
+## Phase 7+ preview
+
+Everything from here is genuinely a second stage, not a continuation of
+the MVP loop: the Learner Model (BKT, FSRS, error-pattern aggregation
+into misconceptions), the Adaptive Planner (OR-Tools CP-SAT scheduling
+against exam dates and availability), advanced/olympiad depth (L0-L5
+gating, transfer scoring, SymPy/Pint-based STEM verification), external
+integrations (Google Calendar, web/YouTube ingestion), and production
+hardening (security review, adversarial RAG evals, backups, full
+observability). See blueprint sections 16-21, 7, 12, 28-31 for what each
+of these actually requires — they're substantial enough that none should
+be started without their own scoped, verified vertical slice, the same
+way each phase above was.

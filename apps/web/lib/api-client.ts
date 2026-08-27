@@ -1,4 +1,5 @@
 import type {
+  AttemptResult,
   BuildCurriculumResponse,
   ChatMessage,
   ChatMessageListResponse,
@@ -8,12 +9,18 @@ import type {
   Flashcard,
   FlashcardListResponse,
   GenerateFlashcardsResponse,
+  GenerateQuestionsResponse,
   HealthReadyResponse,
+  HintResponse,
   Note,
   NoteListResponse,
   Notebook,
   NotebookListResponse,
   NotebookSourceListResponse,
+  PracticeSessionCurrent,
+  Question,
+  QuestionListResponse,
+  QuestionType,
   SearchResponse,
   Source,
   SourceListResponse,
@@ -288,4 +295,82 @@ export function generateStudyGuide(subjectId: string): Promise<StudyGuide> {
 
 export function getStudyGuide(subjectId: string): Promise<StudyGuide> {
   return request<StudyGuide>(`/v1/subjects/${subjectId}/study-guide`);
+}
+
+export function listQuestions(subjectId: string): Promise<QuestionListResponse> {
+  return request<QuestionListResponse>(`/v1/subjects/${subjectId}/questions`);
+}
+
+export interface CreateQuestionInput {
+  concept_id?: string;
+  question_type: QuestionType;
+  stem: string;
+  options?: { id: string; text: string }[];
+  correct_option_id?: string;
+  numeric_answer?: number;
+  numeric_tolerance?: number;
+  units?: string;
+  sample_answer?: string;
+  hints?: string[];
+  solution_text?: string;
+}
+
+export function createQuestion(subjectId: string, data: CreateQuestionInput): Promise<Question> {
+  return request<Question>(`/v1/subjects/${subjectId}/questions`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(data),
+  });
+}
+
+export function generateQuestions(
+  subjectId: string,
+  data: { concept_id: string; question_type: QuestionType; count?: number },
+): Promise<GenerateQuestionsResponse> {
+  return request<GenerateQuestionsResponse>(`/v1/subjects/${subjectId}/questions/generate`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(data),
+  });
+}
+
+export function getHint(subjectId: string, questionId: string, index: number): Promise<HintResponse> {
+  return request<HintResponse>(`/v1/subjects/${subjectId}/questions/${questionId}/hints/${index}`);
+}
+
+export function createPracticeSession(
+  subjectId: string,
+  data: { concept_ids?: string[]; question_count?: number },
+): Promise<PracticeSessionCurrent> {
+  return request<PracticeSessionCurrent>(`/v1/subjects/${subjectId}/practice/sessions`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(data),
+  });
+}
+
+export function getCurrentPracticeQuestion(
+  subjectId: string,
+  sessionId: string,
+): Promise<PracticeSessionCurrent> {
+  return request<PracticeSessionCurrent>(
+    `/v1/subjects/${subjectId}/practice/sessions/${sessionId}/current`,
+  );
+}
+
+export interface SubmitAttemptInput {
+  question_id: string;
+  session_id?: string;
+  raw_answer: Record<string, unknown>;
+  elapsed_ms?: number;
+  hints_used?: number;
+  solution_revealed?: boolean;
+}
+
+export function submitAttempt(data: SubmitAttemptInput): Promise<AttemptResult> {
+  return request<AttemptResult>("/v1/attempts", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(data),
+  });
 }

@@ -1,10 +1,10 @@
 # Adaptive Learning OS
 
-A personal **Learning Operating System**: a unified platform for ingesting study
-material (PDFs, slides, photos of notes, web pages, YouTube videos), turning it
-into a searchable, cited knowledge base, structuring it into a concept
-curriculum, and — in later phases — practicing against it, tracking mastery,
-and adaptively planning study time.
+A personal **Learning Operating System**: upload study material (PDFs,
+slides, photos of notes), get a searchable, cited knowledge base, a concept
+curriculum extracted from it, lessons/flashcards/a study guide generated
+from that, grounded chat over your sources, and practice questions with
+timing, hints, and error feedback — all from the same domain model.
 
 This repository follows the architecture defined in
 [`docs/architecture/blueprint.md`](docs/architecture/blueprint.md): a modular
@@ -12,10 +12,13 @@ monolith backend, a Next.js frontend, Postgres/pgvector as the single source
 of domain truth, and object storage as the source of truth for original
 files.
 
-> **Current status:** Phase 0 (repository foundation) + Phase 1 (Source
-> Library: upload, storage, status tracking). See
+> **Current status: MVP complete** (blueprint section 43 — Phases 0-6).
+> Upload → parse/search → concept graph → lessons/flashcards/study guide →
+> grounded chat with citations → practice, end to end. See
 > [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) for what
-> comes next (parsing/RAG, curriculum builder, practice, planner, tutor).
+> was built in each phase and what's next (mastery modeling, FSRS, the
+> adaptive planner, olympiad-depth verification, integrations, hardening —
+> a distinct second stage, not started).
 
 ## Why a static site *and* a full backend in the same repo?
 
