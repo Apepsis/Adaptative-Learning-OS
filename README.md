@@ -74,16 +74,15 @@ apps/api/     FastAPI backend (modular monolith) + Celery workers
 infra/        Dockerfiles and deployment infrastructure
 docs/         Architecture, ADRs, runbooks
 site/         Static landing page published to GitHub Pages
-.claude/      Claude Code agents, commands, and project rules
 ```
 
 ## Architecture rules
 
-The non-negotiable rules for this codebase live in [`CLAUDE.md`](CLAUDE.md).
-In short: routers never touch the database directly, LLM providers are only
-called through `app/ai/providers`, original files never go into Postgres,
-every schema change ships an Alembic migration, and retrieved source content
-is always treated as untrusted data, never as instructions.
+Core architecture rules for the project: routers never touch the database
+directly, LLM providers are only called through `app/ai/providers`, original
+files never go into Postgres, every schema change ships an Alembic migration,
+and retrieved source content is always treated as untrusted data, never as
+instructions.
 
 ## License
 
