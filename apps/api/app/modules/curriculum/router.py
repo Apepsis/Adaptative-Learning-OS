@@ -59,14 +59,14 @@ async def get_concept(
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ConceptDetailRead:
-    concept, outgoing, incoming, evidence_chunk_ids = await service.get_concept(
+    concept, outgoing, incoming, evidence = await service.get_concept(
         session, user_id=current_user.id, subject_id=subject_id, concept_id=concept_id
     )
     return ConceptDetailRead(
         **ConceptRead.model_validate(concept).model_dump(),
         outgoing_edges=[ConceptEdgeRead.model_validate(e) for e in outgoing],
         incoming_edges=[ConceptEdgeRead.model_validate(e) for e in incoming],
-        evidence_chunk_ids=evidence_chunk_ids,
+        evidence=evidence,
     )
 
 

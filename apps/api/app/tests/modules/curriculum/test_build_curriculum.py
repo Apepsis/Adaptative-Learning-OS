@@ -107,7 +107,8 @@ async def test_build_curriculum_populates_evidence_and_edge_detail(
 
     detail = await client.get(f"/v1/subjects/{subject_id}/concepts/{subtopic['id']}")
     body = detail.json()
-    assert len(body["evidence_chunk_ids"]) > 0
+    assert len(body["evidence"]) > 0
+    assert body["evidence"][0]["text"]  # real excerpt text, not just an id
     assert len(body["outgoing_edges"]) == 1
     assert body["outgoing_edges"][0]["relation"] == "PART_OF"
 

@@ -151,10 +151,19 @@ export interface ConceptEdge {
   approved: boolean;
 }
 
+export interface EvidenceExcerpt {
+  chunk_id: string;
+  source_id: string;
+  source_title: string;
+  page_start: number;
+  page_end: number;
+  text: string;
+}
+
 export interface ConceptDetail extends Concept {
   outgoing_edges: ConceptEdge[];
   incoming_edges: ConceptEdge[];
-  evidence_chunk_ids: string[];
+  evidence: EvidenceExcerpt[];
 }
 
 export interface BuildCurriculumResponse {
@@ -163,4 +172,29 @@ export interface BuildCurriculumResponse {
   edges_created: number;
   edges_skipped_cycle: number;
   chunks_considered: number;
+}
+
+export interface Flashcard {
+  id: string;
+  concept_id: string;
+  front: string;
+  back: string;
+  source_grounded: boolean;
+  created_at: string;
+}
+
+export interface FlashcardListResponse {
+  items: Flashcard[];
+  total: number;
+}
+
+export interface GenerateFlashcardsResponse {
+  created: number;
+  skipped_existing: number;
+}
+
+export interface StudyGuide {
+  subject_id: string;
+  content: string;
+  updated_at: string;
 }

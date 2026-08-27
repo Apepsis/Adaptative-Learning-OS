@@ -71,10 +71,19 @@ class ConceptEdgeRead(BaseModel):
     approved: bool
 
 
+class EvidenceExcerpt(BaseModel):
+    chunk_id: uuid.UUID
+    source_id: uuid.UUID
+    source_title: str
+    page_start: int
+    page_end: int
+    text: str
+
+
 class ConceptDetailRead(ConceptRead):
     outgoing_edges: list[ConceptEdgeRead]
     incoming_edges: list[ConceptEdgeRead]
-    evidence_chunk_ids: list[uuid.UUID]
+    evidence: list[EvidenceExcerpt]
 
 
 class ConceptUpdate(BaseModel):

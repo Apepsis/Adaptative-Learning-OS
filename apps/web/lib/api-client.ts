@@ -5,6 +5,9 @@ import type {
   Concept,
   ConceptDetail,
   ConceptListResponse,
+  Flashcard,
+  FlashcardListResponse,
+  GenerateFlashcardsResponse,
   HealthReadyResponse,
   Note,
   NoteListResponse,
@@ -15,6 +18,7 @@ import type {
   Source,
   SourceListResponse,
   SourceStatusResponse,
+  StudyGuide,
   Subject,
   SubjectListResponse,
 } from "./types";
@@ -251,4 +255,37 @@ export function mergeConcepts(
     headers: JSON_HEADERS,
     body: JSON.stringify({ absorb_concept_id: absorbConceptId }),
   });
+}
+
+export function generateFlashcards(subjectId: string): Promise<GenerateFlashcardsResponse> {
+  return request<GenerateFlashcardsResponse>(`/v1/subjects/${subjectId}/flashcards/generate`, {
+    method: "POST",
+  });
+}
+
+export function listFlashcards(subjectId: string): Promise<FlashcardListResponse> {
+  return request<FlashcardListResponse>(`/v1/subjects/${subjectId}/flashcards`);
+}
+
+export function createFlashcard(
+  subjectId: string,
+  data: { concept_id: string; front: string; back: string },
+): Promise<Flashcard> {
+  return request<Flashcard>(`/v1/subjects/${subjectId}/flashcards`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteFlashcard(subjectId: string, flashcardId: string): Promise<void> {
+  return request<void>(`/v1/subjects/${subjectId}/flashcards/${flashcardId}`, { method: "DELETE" });
+}
+
+export function generateStudyGuide(subjectId: string): Promise<StudyGuide> {
+  return request<StudyGuide>(`/v1/subjects/${subjectId}/study-guide/generate`, { method: "POST" });
+}
+
+export function getStudyGuide(subjectId: string): Promise<StudyGuide> {
+  return request<StudyGuide>(`/v1/subjects/${subjectId}/study-guide`);
 }

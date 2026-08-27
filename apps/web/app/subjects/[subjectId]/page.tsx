@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import {
@@ -57,6 +58,18 @@ export default function SubjectDetailPage() {
           {buildMutation.isPending ? "Building..." : "Build curriculum"}
         </button>
       </div>
+
+      <nav className="flex gap-4 border-b border-slate-200 pb-2 text-sm">
+        <Link href={`/subjects/${subjectId}/definitions`} className="text-brand-600 hover:underline">
+          Definitions
+        </Link>
+        <Link href={`/subjects/${subjectId}/flashcards`} className="text-brand-600 hover:underline">
+          Flashcards
+        </Link>
+        <Link href={`/subjects/${subjectId}/study-guide`} className="text-brand-600 hover:underline">
+          Study guide
+        </Link>
+      </nav>
 
       {buildMutation.isError && (
         <p className="text-sm text-red-600">{buildMutation.error.message}</p>
@@ -179,9 +192,16 @@ function ConceptCard({
               {edge.relation} → this
             </p>
           ))}
-          <p className="text-slate-400">{detail.evidence_chunk_ids.length} source excerpt(s) cited.</p>
+          <p className="text-slate-400">{detail.evidence.length} source excerpt(s) cited.</p>
         </div>
       )}
+
+      <Link
+        href={`/subjects/${subjectId}/concepts/${concept.id}`}
+        className="mt-2 block text-xs text-brand-600 hover:underline"
+      >
+        View lesson →
+      </Link>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {concept.status === "PROPOSED" && (

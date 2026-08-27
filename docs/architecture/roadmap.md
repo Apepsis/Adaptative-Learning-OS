@@ -17,7 +17,7 @@ next one.
 | 2 | Parsing + search (native PDF, chunks, embeddings, hybrid retrieval) | ✅ Done |
 | 3 | Notebook Mode (grounded chat over sources) | ✅ Done |
 | 4 | Curriculum Builder (concept graph) | ✅ Done |
-| 5 | Learn UI (lessons, flashcards, definitions) | ⬜ Not started |
+| 5 | Learn UI (lessons, flashcards, definitions) | ✅ Done |
 | 6 | Question Bank + basic practice | ⬜ Not started |
 | 7 | Learner Model (BKT, FSRS, error patterns) | ⬜ Not started |
 | 8 | Planner v1 (OR-Tools) | ⬜ Not started |
@@ -27,7 +27,9 @@ next one.
 | 12 | Hardening (security, evals, backups, observability) | ⬜ Not started |
 
 **MVP scope** (blueprint section 43) is Phases 0-5 plus basic practice
-from Phase 6. Everything else is deliberately deferred.
+from Phase 6. Everything else is deliberately deferred. **Phases 0-5 are
+done** — Phase 6's basic practice (question bank + attempts) is the last
+piece before the blueprint's own MVP definition is complete.
 
 ## What Phase 0 + 1 actually built
 
@@ -235,9 +237,57 @@ that built this) — run `make test-api-slow` to confirm that end-to-end.
 - Confidence scores on edges are stored but not surfaced or acted on
   anywhere yet (always defaults to 1.0 from the model).
 
-## Phase 5 preview (next up)
+## What Phase 5 actually built
 
-Learn UI (blueprint section 5, 22.3): lessons, definitions, flashcards,
-and a study guide surfaced from the concept graph and its evidence —
-turning the (currently API-only-visualized) curriculum into something a
-student actually studies from, not just reviews.
+Mostly presentation over data Phase 4 already produced, plus one new LLM
+generation pass:
+
+- **Lesson view** (`/subjects/[id]/concepts/[id]`): a concept's
+  definition, its PART_OF parent, PREREQUISITE_OF prerequisites (and
+  other relations), and — new this phase — the actual evidence **text**
+  it was extracted from, not just chunk ids. `ChunkRepository` gained
+  `get_with_source_title_for_user` for this; the curriculum module's
+  `ConceptDetailRead.evidence` field replaced the old bare
+  `evidence_chunk_ids` (a real API shape change, made freely since
+  nothing external depends on it yet).
+- **Definitions** (`/subjects/[id]/definitions`): a filterable list —
+  genuinely just a read + filter over existing concept data, no new
+  backend endpoint needed.
+- **Flashcards** (`app/modules/learn/`, `flashcards` table): generation is
+  **deterministic, not an LLM call** — one flashcard per concept/skill
+  (not per topic/subtopic — a "what is Kinematics?" flashcard tests a
+  label, not a fact) that has a definition and doesn't already have one.
+  Free, instant, and re-running generation doesn't duplicate. Manual
+  flashcard creation/edit/delete also supported. FSRS review scheduling
+  (blueprint 7.10's `review_state`) is still Phase 7 — this is content
+  only.
+- **Study guide** (`study_guides` table, one regenerable row per subject):
+  the one new LLM call this phase — Gemini synthesizes the subject's
+  approved concepts and their relationships into a Markdown guide. Scoped
+  to the *subject* rather than a *notebook* — see
+  [ADR 0004](../adr/0004-study-guide-scoped-to-subject.md) for why, since
+  blueprint 24.10 describes it as a notebook artifact. Rendered with
+  `react-markdown` on the frontend.
+- Tests: flashcard generation's concept-type filtering and idempotency,
+  manual CRUD, study guide generation/regeneration/empty-state, using the
+  same `FakeGenerationProvider` pattern as Phases 3-4. ruff and mypy clean
+  across all 106 backend files.
+
+### Known gaps
+
+- No spaced-repetition scheduling for flashcards yet (Phase 7).
+- The study guide has no explicit "regenerate only if concepts changed"
+  logic — every "Regenerate" click makes a fresh LLM call even if nothing
+  changed since the last one.
+- Lesson view doesn't yet render LaTeX/formulas specially — evidence text
+  is shown as extracted plain text (matches Phase 2's pypdf-based parser,
+  which doesn't preserve formula structure either).
+
+## Phase 6 preview (next up)
+
+Question Bank + basic practice (blueprint section 13-14): importing/
+authoring questions (MCQ, numeric, short answer first), a practice
+session flow, attempt tracking, hints, and basic automated grading. This
+is the last piece of the blueprint's own MVP definition (section 43) —
+completing it closes the full loop: upload → understand → structure →
+learn → ask with citations → **practice**.

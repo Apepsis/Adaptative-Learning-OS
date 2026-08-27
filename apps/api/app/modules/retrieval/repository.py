@@ -20,6 +20,21 @@ class ChunkRepository:
     async def delete_for_source(self, source_id: uuid.UUID) -> None:
         await self._session.execute(delete(Chunk).where(Chunk.source_id == source_id))
 
+    async def get_with_source_title_for_user(
+        self, chunk_ids: list[uuid.UUID], *, user_id: uuid.UUID
+    ) -> list[tuple[Chunk, str]]:
+        """Used to render evidence as readable excerpts (e.g. the curriculum
+        module's lesson view), not just bare chunk ids."""
+        if not chunk_ids:
+            return []
+        stmt = (
+            select(Chunk, Source.title)
+            .join(Source, Source.id == Chunk.source_id)
+            .where(Source.user_id == user_id, Chunk.id.in_(chunk_ids))
+        )
+        result = await self._session.execute(stmt)
+        return [(chunk, title) for chunk, title in result.all()]
+
     def _scoped(self, *, user_id: uuid.UUID, subject_id: uuid.UUID | None, source_ids: list[uuid.UUID] | None):
         stmt = select(Chunk).join(Source, Source.id == Chunk.source_id).where(Source.user_id == user_id)
         if subject_id is not None:

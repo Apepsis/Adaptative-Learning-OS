@@ -14,6 +14,7 @@ from app.db.base import Base
 from app.modules.curriculum import models as curriculum_models  # noqa: F401
 from app.modules.identity import models as identity_models  # noqa: F401
 from app.modules.ingestion import models as ingestion_models  # noqa: F401
+from app.modules.learn import models as learn_models  # noqa: F401
 from app.modules.notebooks import models as notebooks_models  # noqa: F401
 from app.modules.retrieval import models as retrieval_models  # noqa: F401
 from app.modules.sources import models as sources_models  # noqa: F401

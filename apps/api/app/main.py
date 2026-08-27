@@ -19,6 +19,7 @@ from app.core.telemetry import configure_telemetry
 from app.db.session import get_engine
 from app.modules.curriculum.router import router as curriculum_router
 from app.modules.identity.router import router as identity_router
+from app.modules.learn.router import router as learn_router
 from app.modules.notebooks.router import router as notebooks_router
 from app.modules.retrieval.router import router as retrieval_router
 from app.modules.sources.router import router as sources_router
@@ -76,6 +77,7 @@ app.include_router(sources_router)
 app.include_router(retrieval_router)
 app.include_router(notebooks_router)
 app.include_router(curriculum_router)
+app.include_router(learn_router)
 
 
 @app.get("/health/live", tags=["health"])

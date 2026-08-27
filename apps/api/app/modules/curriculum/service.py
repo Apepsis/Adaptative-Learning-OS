@@ -13,7 +13,9 @@ from app.modules.curriculum.schemas import (
     BuildCurriculumResponse,
     ConceptExtractionResult,
     ConceptUpdate,
+    EvidenceExcerpt,
 )
+from app.modules.retrieval.repository import ChunkRepository
 from app.modules.subjects.repository import SubjectRepository
 
 # Extraction is grounded strictly in the user's own uploaded material — no
@@ -180,7 +182,7 @@ async def list_concepts(session: AsyncSession, *, user_id: uuid.UUID, subject_id
 
 async def get_concept(
     session: AsyncSession, *, user_id: uuid.UUID, subject_id: uuid.UUID, concept_id: uuid.UUID
-) -> tuple[Concept, list[ConceptEdge], list[ConceptEdge], list[uuid.UUID]]:
+) -> tuple[Concept, list[ConceptEdge], list[ConceptEdge], list[EvidenceExcerpt]]:
     await _verify_subject(session, user_id=user_id, subject_id=subject_id)
     repository = CurriculumRepository(session)
     concept = await repository.get_concept(subject_id, concept_id)
@@ -188,7 +190,23 @@ async def get_concept(
         raise NotFoundError(f"Concept {concept_id} not found")
     outgoing, incoming = await repository.list_edges_for_concept(concept_id)
     evidence_chunk_ids = await repository.list_evidence_chunk_ids(concept_id)
-    return concept, outgoing, incoming, evidence_chunk_ids
+
+    chunk_repository = ChunkRepository(session)
+    chunks_with_titles = await chunk_repository.get_with_source_title_for_user(
+        evidence_chunk_ids, user_id=user_id
+    )
+    evidence = [
+        EvidenceExcerpt(
+            chunk_id=chunk.id,
+            source_id=chunk.source_id,
+            source_title=title,
+            page_start=chunk.page_start,
+            page_end=chunk.page_end,
+            text=chunk.text,
+        )
+        for chunk, title in chunks_with_titles
+    ]
+    return concept, outgoing, incoming, evidence
 
 
 async def update_concept(
