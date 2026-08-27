@@ -12,13 +12,16 @@ monolith backend, a Next.js frontend, Postgres/pgvector as the single source
 of domain truth, and object storage as the source of truth for original
 files.
 
-> **Current status: MVP complete** (blueprint section 43 — Phases 0-6).
+> **Current status: MVP complete (Phases 0-6) + Phase 7** (blueprint
+> section 43 for the MVP; section 42's Phase 7 for the learner model).
 > Upload → parse/search → concept graph → lessons/flashcards/study guide →
-> grounded chat with citations → practice, end to end. See
+> grounded chat with citations → practice → **real BKT mastery per
+> concept, FSRS-scheduled flashcard review, and detected error
+> patterns**, end to end. See
 > [`docs/architecture/roadmap.md`](docs/architecture/roadmap.md) for what
-> was built in each phase and what's next (mastery modeling, FSRS, the
-> adaptive planner, olympiad-depth verification, integrations, hardening —
-> a distinct second stage, not started).
+> was built in each phase and what's next (the OR-Tools adaptive planner,
+> olympiad-depth verification, integrations, hardening — a distinct,
+> not-yet-started continuation of this second stage).
 
 ## Why a static site *and* a full backend in the same repo?
 

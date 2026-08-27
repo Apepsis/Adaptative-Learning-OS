@@ -56,6 +56,34 @@ def test_heading_path_tracks_nesting_and_pops_on_sibling() -> None:
     assert ["Chapter 3", "3.3 Section"] in paths
 
 
+def test_heading_path_keeps_the_starting_heading_when_a_later_heading_does_not_flush() -> None:
+    # Regression: a small document with several short sections in a row
+    # (each too small to trigger the _HEADING_FLUSH_RATIO gate) used to
+    # merge into one chunk but get mislabeled with the *last* heading seen,
+    # discarding where the merged text actually started.
+    pages = [
+        CanonicalPage(
+            number=1,
+            blocks=[
+                CanonicalBlock(type="heading", text="3.1 First", level=2),
+                CanonicalBlock(type="paragraph", text="Short body one."),
+            ],
+        ),
+        CanonicalPage(
+            number=2,
+            blocks=[
+                CanonicalBlock(type="heading", text="3.2 Second", level=2),
+                CanonicalBlock(type="paragraph", text="Short body two."),
+            ],
+        ),
+    ]
+    chunks = build_chunks(_doc(*pages), target_tokens=350, max_tokens=900)
+    assert len(chunks) == 1
+    assert chunks[0].heading_path == ["3.1 First"]
+    assert chunks[0].page_start == 1
+    assert chunks[0].page_end == 2
+
+
 def test_chunk_splits_when_max_tokens_exceeded() -> None:
     page = CanonicalPage(
         number=1,

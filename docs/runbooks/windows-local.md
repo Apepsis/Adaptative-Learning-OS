@@ -83,3 +83,33 @@ docker compose run --rm api pytest              # fast, no ML model, no fixtures
 docker compose run --rm api pytest -m slow       # real PDF + real BGE-M3 embedding; slow, needs internet on first run
 docker compose run --rm web pnpm test -- --run
 ```
+
+## Running the API's tests directly on the host (not in a container)
+
+If you have Python 3.13 and the `apps/api` dependencies installed locally
+(`pip install -e ".[dev]"` from `apps/api`), you can run pytest directly
+against `docker compose up -d postgres redis minio minio-init` instead of
+rebuilding/running the `api` image every time — faster for iterating on
+the backend alone. Two Windows-specific gotchas, both required, verified
+directly against a real `docker compose` stack while building Phase 7:
+
+1. **Point at `127.0.0.1`, not `localhost`, in your env vars.** Docker
+   Desktop publishes these ports on the IPv4 loopback only
+   (`127.0.0.1:5432:5432` etc. in `docker-compose.yml`). Windows resolves
+   `localhost` to `::1` (IPv6) first, and psycopg's async connect has no
+   fallback to IPv4 the way the sync driver does — it hangs indefinitely
+   rather than erroring, which is confusing to debug. Set
+   `DATABASE_URL=postgresql+psycopg://learning:change-me@127.0.0.1:5432/learning_os`
+   (and `S3_ENDPOINT_URL=http://127.0.0.1:9000`, `REDIS_URL=redis://127.0.0.1:6379/0`)
+   explicitly rather than relying on the container-network defaults in
+   `.env.example` (which correctly use the service names `postgres`/
+   `minio`/`redis` — those only resolve *inside* the Docker network, not
+   from the host).
+2. **psycopg's async mode needs a selector-based event loop, not
+   Windows' default Proactor loop.** `app/tests/conftest.py` sets
+   `asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())`
+   on `sys.platform == "win32"` for this reason — it's already handled for
+   `pytest`, but a standalone script (e.g. running `alembic upgrade head`
+   from the host instead of via `docker compose run`) needs the same
+   policy set before creating an engine, or every connection attempt hangs
+   with no error until something else times it out.

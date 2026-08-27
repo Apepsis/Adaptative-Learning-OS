@@ -33,13 +33,21 @@ export default function FlashcardsPage() {
       </Link>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Flashcards</h1>
-        <button
-          onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending}
-          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          {generateMutation.isPending ? "Generating..." : "Generate from concepts"}
-        </button>
+        <div className="flex gap-2">
+          <Link
+            href={`/subjects/${subjectId}/flashcards/review`}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50"
+          >
+            Review due cards
+          </Link>
+          <button
+            onClick={() => generateMutation.mutate()}
+            disabled={generateMutation.isPending}
+            className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+          >
+            {generateMutation.isPending ? "Generating..." : "Generate from concepts"}
+          </button>
+        </div>
       </div>
 
       {result && <p className="text-sm text-emerald-700">{result}</p>}

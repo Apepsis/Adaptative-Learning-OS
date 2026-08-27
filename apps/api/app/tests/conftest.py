@@ -1,3 +1,5 @@
+import asyncio
+import sys
 from collections.abc import AsyncGenerator
 
 import pytest_asyncio
@@ -5,6 +7,12 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
+
+# psycopg's async mode can't run on Windows' default ProactorEventLoop —
+# it needs a selector-based loop (documented psycopg limitation, not
+# specific to this project). Only affects local test runs on Windows.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 from app.core.security import get_current_user
 from app.db.base import Base
 from app.db.session import get_db

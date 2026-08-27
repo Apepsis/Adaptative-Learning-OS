@@ -25,13 +25,15 @@ async def hybrid_search(
 
     query_embedding = await asyncio.to_thread(embedding_provider.embed_query, query)
 
-    vector_results, lexical_results = await asyncio.gather(
-        repository.vector_search(
-            query_embedding, user_id=user_id, subject_id=subject_id, source_ids=source_ids
-        ),
-        repository.lexical_search(
-            query, user_id=user_id, subject_id=subject_id, source_ids=source_ids
-        ),
+    # Sequential, not asyncio.gather: both queries share one AsyncSession,
+    # and a single SQLAlchemy async session/connection cannot run two
+    # operations concurrently (it raises InvalidRequestError if you try) —
+    # verified directly against real Postgres.
+    vector_results = await repository.vector_search(
+        query_embedding, user_id=user_id, subject_id=subject_id, source_ids=source_ids
+    )
+    lexical_results = await repository.lexical_search(
+        query, user_id=user_id, subject_id=subject_id, source_ids=source_ids
     )
 
     chunk_by_id: dict[uuid.UUID, Chunk] = {c.id: c for c in [*vector_results, *lexical_results]}

@@ -20,6 +20,7 @@ from app.db.session import get_engine
 from app.modules.curriculum.router import router as curriculum_router
 from app.modules.identity.router import router as identity_router
 from app.modules.learn.router import router as learn_router
+from app.modules.mastery.router import router as mastery_router
 from app.modules.notebooks.router import router as notebooks_router
 from app.modules.practice.router import attempts_router
 from app.modules.practice.router import subject_router as practice_router
@@ -82,6 +83,7 @@ app.include_router(curriculum_router)
 app.include_router(learn_router)
 app.include_router(practice_router)
 app.include_router(attempts_router)
+app.include_router(mastery_router)
 
 
 @app.get("/health/live", tags=["health"])

@@ -9,6 +9,7 @@ from app.ai.providers.base import GenerationProvider
 from app.core.config import Settings
 from app.core.exceptions import NotFoundError, ValidationFailedError
 from app.modules.curriculum.service import get_concept as get_concept_detail
+from app.modules.mastery.service import record_attempt_outcome
 from app.modules.practice.grading import grade_mcq, grade_numeric
 from app.modules.practice.models import (
     Attempt,
@@ -493,7 +494,10 @@ async def submit_attempt(
             )
             error_type, error_explanation = classification.error_type, classification.explanation
         attempt_error = AttemptError(
-            attempt_id=attempt.id, error_type=error_type, explanation=error_explanation or ""
+            attempt_id=attempt.id,
+            concept_id=question.concept_id,
+            error_type=error_type,
+            explanation=error_explanation or "",
         )
         await repository.add_attempt_error(attempt_error)
         errors.append(attempt_error)
@@ -502,6 +506,10 @@ async def submit_attempt(
         practice_session.current_index += 1
         if practice_session.current_index >= len(practice_session.question_ids):
             practice_session.completed_at = datetime.now(UTC)
+
+    await record_attempt_outcome(
+        session, user_id=user_id, question=question, attempt=attempt, attempt_errors=errors
+    )
 
     await session.commit()
     return attempt, errors

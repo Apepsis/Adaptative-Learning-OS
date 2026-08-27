@@ -6,12 +6,18 @@ import type {
   Concept,
   ConceptDetail,
   ConceptListResponse,
+  ConceptMastery,
+  ConceptMasteryListResponse,
   Flashcard,
+  FlashcardDueListResponse,
   FlashcardListResponse,
+  FlashcardRating,
+  FlashcardReviewResult,
   GenerateFlashcardsResponse,
   GenerateQuestionsResponse,
   HealthReadyResponse,
   HintResponse,
+  MisconceptionListResponse,
   Note,
   NoteListResponse,
   Notebook,
@@ -28,6 +34,7 @@ import type {
   StudyGuide,
   Subject,
   SubjectListResponse,
+  WeaknessListResponse,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -369,6 +376,38 @@ export interface SubmitAttemptInput {
 
 export function submitAttempt(data: SubmitAttemptInput): Promise<AttemptResult> {
   return request<AttemptResult>("/v1/attempts", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(data),
+  });
+}
+
+export function getSubjectMastery(subjectId: string): Promise<ConceptMasteryListResponse> {
+  return request<ConceptMasteryListResponse>(`/v1/subjects/${subjectId}/mastery`);
+}
+
+export function getConceptMastery(subjectId: string, conceptId: string): Promise<ConceptMastery> {
+  return request<ConceptMastery>(`/v1/subjects/${subjectId}/mastery/concepts/${conceptId}`);
+}
+
+export function getWeaknesses(subjectId: string): Promise<WeaknessListResponse> {
+  return request<WeaknessListResponse>(`/v1/subjects/${subjectId}/mastery/weaknesses`);
+}
+
+export function getMisconceptionPatterns(subjectId: string): Promise<MisconceptionListResponse> {
+  return request<MisconceptionListResponse>(`/v1/subjects/${subjectId}/mastery/patterns`);
+}
+
+export function getDueFlashcards(subjectId: string): Promise<FlashcardDueListResponse> {
+  return request<FlashcardDueListResponse>(`/v1/subjects/${subjectId}/flashcards/due`);
+}
+
+export function reviewFlashcard(
+  subjectId: string,
+  flashcardId: string,
+  data: { rating: FlashcardRating; response_ms?: number },
+): Promise<FlashcardReviewResult> {
+  return request<FlashcardReviewResult>(`/v1/subjects/${subjectId}/flashcards/${flashcardId}/review`, {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify(data),

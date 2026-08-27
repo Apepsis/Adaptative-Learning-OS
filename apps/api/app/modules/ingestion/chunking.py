@@ -69,7 +69,13 @@ def build_chunks(
                 while heading_stack and heading_stack[-1][0] >= block.level:
                     heading_stack.pop()
                 heading_stack.append((block.level, block.text))
-                buffer_heading_path = current_path()
+                # Only re-anchor the path if the buffer is empty (just
+                # flushed, or nothing accumulated yet). If it didn't flush
+                # above, the buffer still holds text from *before* this
+                # heading — relabeling it to the new heading here would
+                # mislabel every chunk it's eventually flushed under.
+                if not buffer_text:
+                    buffer_heading_path = current_path()
                 continue
 
             block_tokens = estimate_tokens(block.text)

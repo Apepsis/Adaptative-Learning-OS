@@ -19,7 +19,7 @@ next one.
 | 4 | Curriculum Builder (concept graph) | ✅ Done |
 | 5 | Learn UI (lessons, flashcards, definitions) | ✅ Done |
 | 6 | Question Bank + basic practice | ✅ Done |
-| 7 | Learner Model (BKT, FSRS, error patterns) | ⬜ Not started |
+| 7 | Learner Model (BKT, FSRS, error patterns) | ✅ Done |
 | 8 | Planner v1 (OR-Tools) | ⬜ Not started |
 | 9 | Adaptive loop (nightly replanning, stability horizon) | ⬜ Not started |
 | 10 | Advanced/olympiad (L0-L5, transfer, STEM verification) | ⬜ Not started |
@@ -27,16 +27,19 @@ next one.
 | 12 | Hardening (security, evals, backups, observability) | ⬜ Not started |
 
 **MVP scope** (blueprint section 43) is Phases 0-5 plus basic practice
-from Phase 6. **That MVP is now complete.** The full loop described in
-the blueprint's conclusion (section 54) is real, end to end: upload a
-source → it's parsed, chunked, embedded, and searchable → concepts are
-extracted into a graph → lessons/definitions/flashcards/a study guide are
-generated from it → you can ask questions grounded in your sources with
-citations → you can practice questions (written or generated) with
-hints, timing, and error feedback. Phases 7-12 (adaptive mastery
-modeling, FSRS, the OR-Tools planner, olympiad-depth verification,
-external integrations, production hardening) are a distinct, larger
-second stage — not started, and not silently implied by anything above.
+from Phase 6. **That MVP is complete, and Phase 7 (the first slice of the
+second stage) now sits on top of it.** The full MVP loop described in the
+blueprint's conclusion (section 54) is real, end to end: upload a source →
+it's parsed, chunked, embedded, and searchable → concepts are extracted
+into a graph → lessons/definitions/flashcards/a study guide are generated
+from it → you can ask questions grounded in your sources with citations →
+you can practice questions (written or generated) with hints, timing, and
+error feedback — and now every attempt updates a real BKT mastery
+estimate per concept, flashcards are scheduled with real FSRS spaced
+repetition, and recurring wrong-answer patterns surface as misconceptions.
+Phases 8-12 (the OR-Tools planner, olympiad-depth verification, external
+integrations, production hardening) remain not started, and not silently
+implied by anything above.
 
 ## What Phase 0 + 1 actually built
 
@@ -348,16 +351,128 @@ generation pass:
   as a column but nothing populates it yet — that's Phase 10's L0-L5
   depth scale).
 
-## Phase 7+ preview
+## What Phase 7 actually built — first slice of the second stage
 
-Everything from here is genuinely a second stage, not a continuation of
-the MVP loop: the Learner Model (BKT, FSRS, error-pattern aggregation
-into misconceptions), the Adaptive Planner (OR-Tools CP-SAT scheduling
-against exam dates and availability), advanced/olympiad depth (L0-L5
-gating, transfer scoring, SymPy/Pint-based STEM verification), external
-integrations (Google Calendar, web/YouTube ingestion), and production
-hardening (security review, adversarial RAG evals, backups, full
-observability). See blueprint sections 16-21, 7, 12, 28-31 for what each
-of these actually requires — they're substantial enough that none should
-be started without their own scoped, verified vertical slice, the same
-way each phase above was.
+- `app/modules/mastery/`: a new module for everything blueprint sections
+  15-17 describe as "the learner model" — Bayesian Knowledge Tracing
+  (`concept_mastery`, `mastery_events`), FSRS spaced repetition
+  (`review_state`, `flashcard_reviews`), and error-pattern detection
+  (`misconceptions`). `attempt_errors` gained `concept_id` and
+  `misconception_id` (blueprint 7.8) to link them.
+- **BKT is real, not simulated**: `app/modules/mastery/bkt.py` implements
+  blueprint 16.2's exact update rules as pure, dependency-free functions
+  (`update_mastery`), generalized to partial credit (16.4) by
+  interpolating between the correct/incorrect posteriors by score.
+  `submit_attempt` (practice module) calls
+  `mastery.service.record_attempt_outcome` after grading every attempt —
+  BKT posterior, recency-weighted accuracy, hint independence, and a
+  personal-baseline speed index (16.8) all update in the same request,
+  with no LLM call. Bootstrap parameters and the reasoning behind
+  numeric/short-answer-specific values are in
+  [ADR 0006](../adr/0006-learner-model-simplifications.md).
+- **FSRS is the real `fsrs` (py-fsrs) library**, not a hand-rolled
+  scheduler — verified against the installed package (6.3.2) the same way
+  the Gemini SDK shape was verified in Phase 3.
+  `app/modules/mastery/fsrs_adapter.py` wraps `Card`/`Scheduler`/`Rating`;
+  `POST /v1/subjects/{id}/flashcards/{id}/review` persists the returned
+  schedule, `GET .../flashcards/due` lists cards due now (or never
+  reviewed). Frontend: `/subjects/[id]/flashcards/review` — flip, rate
+  Again/Hard/Good/Easy, next card.
+- **Misconception pattern detection is deterministic** (blueprint 15.4,
+  not an LLM call): a documented step-decay function turns a run of
+  same-typed errors on a concept into a "candidate" (>=3 weighted events)
+  and then "confirmed" (>=5 weighted events across >=2 distinct
+  questions — the diversity requirement is a real, tested constraint, not
+  just a count). `GET /v1/subjects/{id}/mastery/{weaknesses,patterns}`
+  surface both to the frontend's new `/subjects/[id]/mastery` page.
+- Tests: 39 fast, dependency-free unit tests for BKT, the accuracy/
+  confidence/hint/speed statistics, the pattern-decay logic, and the real
+  `fsrs` adapter (`app/tests/modules/mastery/test_{bkt,stats,patterns,fsrs_adapter}.py`),
+  plus 9 integration tests through the real HTTP/DB stack covering the
+  full submit-attempt-updates-mastery flow, misconception confirmation
+  across two questions, weakness surfacing, cross-user isolation, and the
+  flashcard review flow. ruff and mypy clean across all 132 backend files.
+
+### A real milestone: full end-to-end verification, for the first time
+
+Every phase through 6 was built and committed with Docker unavailable in
+the environment doing the work — verification was necessarily partial
+(parsing/chunking/embedding logic run directly, but never the full
+Postgres/Redis/MinIO stack together). Docker was available for Phase 7,
+so `docker compose up -d postgres redis minio minio-init` plus
+`alembic upgrade head` plus the **entire** backend test suite — fast and
+`slow`, 140 tests, every phase, not just this one — were run for real for
+the first time. That surfaced five genuine pre-existing bugs, now fixed
+as part of this phase:
+
+- `SourceStatusRead` (Phase 1) was missing `ConfigDict(from_attributes=True)`
+  — `GET /v1/sources/{id}/status` has been silently broken since Phase 1.
+- SQLAlchemy 2.0's `eager_defaults="auto"` only refetches server-computed
+  columns (`onupdate=func.now()`) via `RETURNING` on INSERT, not UPDATE —
+  any model updated and re-serialized in the same request (StudyGuide
+  regeneration, editing a notebook note) hit `MissingGreenlet` under
+  async SQLAlchemy. Fixed once, structurally, via `eager_defaults: True`
+  on the shared `Base` (`app/db/base.py`) — verified directly against
+  real Postgres before and after.
+- `get_generation_provider()` (Phase 3) raised `AIProviderError`
+  eagerly, at FastAPI dependency-resolution time — meaning **every**
+  `/v1/attempts` submission required a configured `GEMINI_API_KEY`, even
+  for MCQ/numeric grading, which blueprint 14.2 explicitly says needs no
+  LLM call at all. Fixed by deferring the "is a key configured" check
+  from provider construction to first actual use
+  (`app/ai/providers/factory.py`'s `_UnconfiguredProvider`) — chat,
+  curriculum extraction, study guide/question generation all still fail
+  fast with the same clear message, just one call-frame later, since they
+  always call the provider anyway.
+- `hybrid_search` (Phase 2) ran `vector_search` and `lexical_search`
+  concurrently via `asyncio.gather` on the *same* `AsyncSession` — a
+  single SQLAlchemy async session can't run two operations at once, and
+  raised `InvalidRequestError` under real load. Every `/v1/search` and
+  Notebook Mode chat call was affected; fixed by awaiting the two queries
+  sequentially instead (`app/modules/retrieval/service.py`).
+- `build_chunks` (Phase 2) reassigned a chunk's `heading_path` to
+  whatever heading was *most recently seen*, even when that heading
+  didn't trigger a flush — so a chunk merging several short sections (the
+  `_HEADING_FLUSH_RATIO` gate exists specifically to avoid over-fragmenting
+  small documents) got mislabeled with the heading its content ends
+  under, not the one it starts under. Fixed to only re-anchor the path
+  when the buffer is empty, with a regression test
+  (`test_heading_path_keeps_the_starting_heading_when_a_later_heading_does_not_flush`).
+  The two golden-query tests in `test_search_slow.py` also had their
+  assertions changed from checking an exact page number to checking the
+  actual returned content, since a real chunker legitimately merging a
+  tiny fixture into one chunk makes "which page number" the wrong thing
+  to assert on.
+
+Two Windows-only environment fixes were also needed to make this
+possible at all — documented in
+[`docs/runbooks/windows-local.md`](../runbooks/windows-local.md).
+
+### Known gaps
+
+- `transfer_score` (blueprint 16.7) is a real column that's always
+  `0.0` — nothing tags an attempt as a transfer-context observation yet.
+  See ADR 0006.
+- BKT bootstrap parameters are fixed defaults per question type, never
+  recalibrated from observed data (matches blueprint 16.3's own MVP
+  scope, and 16.6's reasoning for deferring IRT).
+- No independent misconception *catalog* with remediation strategies
+  (blueprint 15.2's `canonical_pattern`/`remediation_strategy` fields) —
+  a misconception here is a detected `(concept, error_type)` pattern, not
+  yet linked to teaching content that addresses it.
+- The planner (Phase 8) doesn't exist yet, so FSRS due-card counts and
+  BKT weaknesses aren't yet turned into scheduled study time — you have
+  to go look at `/subjects/[id]/mastery` and `/flashcards/review`
+  yourself.
+
+## Phase 8+ preview
+
+Everything from here is still the second stage: the Adaptive Planner
+(OR-Tools CP-SAT scheduling against exam dates and availability),
+advanced/olympiad depth (L0-L5 gating, transfer scoring, SymPy/Pint-based
+STEM verification), external integrations (Google Calendar, web/YouTube
+ingestion), and production hardening (security review, adversarial RAG
+evals, backups, full observability). See blueprint sections 18-21, 12,
+28-31 for what each of these actually requires — they're substantial
+enough that none should be started without their own scoped, verified
+vertical slice, the same way each phase above was.

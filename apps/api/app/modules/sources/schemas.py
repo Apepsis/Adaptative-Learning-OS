@@ -22,6 +22,8 @@ class SourceRead(BaseModel):
 
 
 class SourceStatusRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     status: str
     error_message: str | None

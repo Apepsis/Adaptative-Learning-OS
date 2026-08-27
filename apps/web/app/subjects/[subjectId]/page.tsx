@@ -72,6 +72,9 @@ export default function SubjectDetailPage() {
         <Link href={`/subjects/${subjectId}/questions`} className="text-brand-600 hover:underline">
           Questions
         </Link>
+        <Link href={`/subjects/${subjectId}/mastery`} className="text-brand-600 hover:underline">
+          Mastery
+        </Link>
       </nav>
 
       {buildMutation.isError && (

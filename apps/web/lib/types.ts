@@ -279,3 +279,71 @@ export interface HintResponse {
   hints_used: number;
   hints_remaining: number;
 }
+
+export interface ConceptMastery {
+  concept_id: string;
+  p_mastery: number;
+  mastery_confidence: number;
+  recent_accuracy: number;
+  weighted_accuracy: number;
+  transfer_score: number;
+  hint_independence: number;
+  speed_index: number | null;
+  observation_count: number;
+  distinct_question_count: number;
+  last_evidence_at: string | null;
+}
+
+export interface ConceptMasteryListResponse {
+  items: ConceptMastery[];
+}
+
+export interface Weakness {
+  concept_id: string;
+  concept_name: string;
+  p_mastery: number;
+  mastery_confidence: number;
+  reason: string;
+}
+
+export interface WeaknessListResponse {
+  items: Weakness[];
+}
+
+export type MisconceptionStatus = "candidate" | "confirmed";
+
+export interface Misconception {
+  id: string;
+  concept_id: string;
+  error_type: string;
+  status: MisconceptionStatus;
+  event_count: number;
+  distinct_question_count: number;
+  first_seen_at: string;
+  last_seen_at: string;
+}
+
+export interface MisconceptionListResponse {
+  items: Misconception[];
+}
+
+export interface FlashcardDue {
+  id: string;
+  concept_id: string;
+  front: string;
+  back: string;
+}
+
+export interface FlashcardDueListResponse {
+  items: FlashcardDue[];
+}
+
+export type FlashcardRating = "again" | "hard" | "good" | "easy";
+
+export interface FlashcardReviewResult {
+  flashcard_id: string;
+  state: string;
+  due: string;
+  stability: number | null;
+  difficulty: number | null;
+}

@@ -125,9 +125,10 @@ class Attempt(Base):
 
 
 class AttemptError(Base):
-    """Basic error classification (blueprint section 15) — the taxonomy is
-    used directly as a string, without a Misconception catalog linking
-    patterns across attempts yet (that's a later phase)."""
+    """Basic error classification (blueprint section 15). `concept_id` and
+    `misconception_id` (blueprint 7.8) were added in Phase 7 once
+    app.modules.mastery existed to populate them — see
+    app.modules.mastery.service.record_attempt_outcome."""
 
     __tablename__ = "attempt_errors"
 
@@ -137,6 +138,12 @@ class AttemptError(Base):
     attempt_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("attempts.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    concept_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("concepts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     error_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    misconception_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("misconceptions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     explanation: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
