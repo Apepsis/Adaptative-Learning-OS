@@ -1,5 +1,12 @@
 import type {
+  ChatMessage,
+  ChatMessageListResponse,
   HealthReadyResponse,
+  Note,
+  NoteListResponse,
+  Notebook,
+  NotebookListResponse,
+  NotebookSourceListResponse,
   SearchResponse,
   Source,
   SourceListResponse,
@@ -112,5 +119,86 @@ export function search({ query, subjectId, sourceIds, topK }: SearchInput): Prom
       source_ids: sourceIds,
       top_k: topK,
     }),
+  });
+}
+
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+export function listNotebooks(): Promise<NotebookListResponse> {
+  return request<NotebookListResponse>("/v1/notebooks");
+}
+
+export function createNotebook(data: { title: string; description?: string }): Promise<Notebook> {
+  return request<Notebook>("/v1/notebooks", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(data),
+  });
+}
+
+export function getNotebook(notebookId: string): Promise<Notebook> {
+  return request<Notebook>(`/v1/notebooks/${notebookId}`);
+}
+
+export function deleteNotebook(notebookId: string): Promise<void> {
+  return request<void>(`/v1/notebooks/${notebookId}`, { method: "DELETE" });
+}
+
+export function listNotebookSources(notebookId: string): Promise<NotebookSourceListResponse> {
+  return request<NotebookSourceListResponse>(`/v1/notebooks/${notebookId}/sources`);
+}
+
+export function addNotebookSource(notebookId: string, sourceId: string): Promise<void> {
+  return request<void>(`/v1/notebooks/${notebookId}/sources`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ source_id: sourceId }),
+  });
+}
+
+export function removeNotebookSource(notebookId: string, sourceId: string): Promise<void> {
+  return request<void>(`/v1/notebooks/${notebookId}/sources/${sourceId}`, { method: "DELETE" });
+}
+
+export function listNotes(notebookId: string): Promise<NoteListResponse> {
+  return request<NoteListResponse>(`/v1/notebooks/${notebookId}/notes`);
+}
+
+export function createNote(
+  notebookId: string,
+  data: { title?: string; content?: string },
+): Promise<Note> {
+  return request<Note>(`/v1/notebooks/${notebookId}/notes`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateNote(
+  notebookId: string,
+  noteId: string,
+  data: { title?: string; content?: string },
+): Promise<Note> {
+  return request<Note>(`/v1/notebooks/${notebookId}/notes/${noteId}`, {
+    method: "PATCH",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteNote(notebookId: string, noteId: string): Promise<void> {
+  return request<void>(`/v1/notebooks/${notebookId}/notes/${noteId}`, { method: "DELETE" });
+}
+
+export function listMessages(notebookId: string): Promise<ChatMessageListResponse> {
+  return request<ChatMessageListResponse>(`/v1/notebooks/${notebookId}/messages`);
+}
+
+export function sendChatMessage(notebookId: string, message: string): Promise<ChatMessage> {
+  return request<ChatMessage>(`/v1/notebooks/${notebookId}/chat`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ message }),
   });
 }

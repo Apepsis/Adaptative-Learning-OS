@@ -65,3 +65,60 @@ export interface SearchResponse {
   results: SearchResult[];
   not_found: boolean;
 }
+
+export interface Notebook {
+  id: string;
+  title: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotebookListResponse {
+  items: Notebook[];
+  total: number;
+}
+
+export interface NotebookSource {
+  source_id: string;
+  title: string;
+  status: SourceStatus;
+  added_at: string;
+}
+
+export interface NotebookSourceListResponse {
+  items: NotebookSource[];
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NoteListResponse {
+  items: Note[];
+}
+
+export interface ChatCitation {
+  chunk_id: string;
+  source_id: string;
+  source_title: string;
+  page_start: number;
+  page_end: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  citations: ChatCitation[];
+  not_found: boolean;
+  created_at: string;
+}
+
+export interface ChatMessageListResponse {
+  items: ChatMessage[];
+}

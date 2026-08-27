@@ -16,3 +16,9 @@ class ValidationFailedError(DomainError):
 
 class PayloadTooLargeError(DomainError):
     """The uploaded payload exceeds the configured size limit."""
+
+
+class AIProviderError(DomainError):
+    """A configured AI provider is missing config (e.g. no API key) or its
+    call failed. Maps to 502 — the request was valid, an upstream
+    dependency wasn't."""

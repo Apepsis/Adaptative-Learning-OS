@@ -15,7 +15,7 @@ next one.
 | 0 | Repository foundation | ✅ Done |
 | 1 | Library (source upload) | ✅ Done |
 | 2 | Parsing + search (native PDF, chunks, embeddings, hybrid retrieval) | ✅ Done |
-| 3 | Notebook Mode (grounded chat over sources) | ⬜ Not started |
+| 3 | Notebook Mode (grounded chat over sources) | ✅ Done |
 | 4 | Curriculum Builder (concept graph) | ⬜ Not started |
 | 5 | Learn UI (lessons, flashcards, definitions) | ⬜ Not started |
 | 6 | Question Bank + basic practice | ⬜ Not started |
@@ -123,11 +123,68 @@ What was **not** verified here: the full pipeline running inside Docker
 against live Postgres/Redis/MinIO (no Docker available in the environment
 that built this) — run `make test-api-slow` to confirm that end-to-end.
 
-## Phase 3 preview (next up)
+## What Phase 3 actually built
 
-Notebook Mode (blueprint section 2.5, 20): notebooks as a collection of
-selected sources, grounded chat backed by the retrieval built in Phase 2,
-citations rendered from search results, notes. This is also where an LLM
-provider (`app/ai/providers/`, Gemini per blueprint section 21) enters the
-codebase for the first time — retrieved content must be treated as
-untrusted data, never instructions (blueprint section 10).
+- `app/ai/providers/`: a `GenerationProvider` protocol and a Gemini
+  implementation (`app/ai/providers/gemini.py`), using the real
+  `google-genai` SDK — its API shape (`client.aio.models.generate_content`,
+  `types.GenerateContentConfig(system_instruction=...)`, `response.text`)
+  was verified by installing the package and introspecting it directly,
+  not guessed. `FAST_MODEL`/`REASONING_MODEL` now default to real model
+  names (`gemini-2.5-flash` / `gemini-2.5-pro`) instead of blank, so chat
+  works out of the box once `GEMINI_API_KEY` is set — still fully
+  overridable via env, never hardcoded elsewhere (blueprint section 21.1).
+  No `GEMINI_API_KEY` → chat fails fast with a clear `AIProviderError`
+  (HTTP 502) telling the user where to get one, rather than a confusing
+  downstream error.
+- `app/modules/notebooks/`: notebooks, notebook-source associations
+  ("active sources"), notes, and grounded chat backed directly by Phase
+  2's `hybrid_search`. `POST /v1/notebooks/{id}/chat`.
+- **Prompt-injection defense is structural, not a hope** (blueprint
+  section 10): retrieved evidence is formatted as a numbered, clearly
+  delimited data block inside the *user* turn — it never touches the
+  system instruction, which is a fixed constant the request payload
+  cannot reach. `app/tests/modules/notebooks/test_prompt_formatting.py`
+  pins this down directly, including a test that evidence containing
+  "ignore all previous instructions" ends up quoted under a citation
+  marker, never merged into the system prompt.
+- **Honest not-found handling** (blueprint sections 20.4, 31.4): a
+  notebook with no sources, or a query with no matching evidence, returns
+  a clear message *without calling the LLM at all* — cheaper and more
+  reliably honest than hoping the model says "I don't know."
+- Every chat turn (user and assistant) is persisted to
+  `notebook_messages` with citations, so history survives a page reload.
+- Frontend: `/notebooks` (list/create), `/notebooks/[id]` (source
+  management + chat UI with inline citation links back to the source),
+  `/notebooks/[id]/notes`.
+- Tests: fast plumbing tests for notebook/source/note CRUD and the full
+  chat flow use `FakeEmbeddingProvider`/`FakeGenerationProvider`
+  (`app/tests/modules/notebooks/fakes.py`) — real chunks from the real
+  parser, fake vectors, so tests don't need the 2GB model or a live
+  Gemini key. Real embedding correctness stays covered by Phase 2's
+  `slow`-marked suite; there is deliberately no live-Gemini test (would
+  need a real API key and make real network calls from CI).
+
+### Known gaps
+
+- No streaming responses yet (blueprint mentions SSE for the tutor,
+  section 24.9) — chat is request/response. Acceptable for the first
+  slice; revisit if response latency makes it feel unresponsive.
+- No study guide / flashcard / quiz artifact generation yet (blueprint
+  section 24.10's other endpoints) — deferred to keep this phase to what
+  the MVP Notebook DoD (section 44) actually requires: multiple
+  notebooks, active source selection, grounded chat, notes.
+- `SOURCE_ONLY` / `QUOTE_REQUIRED` mode (blueprint section 20.4) isn't a
+  separate mode yet — the current system instruction already forbids
+  outside knowledge, but there's no explicit LITERAL/PARAPHRASE/
+  NOT_FOUND/RELATED_ONLY classification. Worth adding when the tutor
+  (Phase 6+) needs it more precisely.
+
+## Phase 4 preview (next up)
+
+Curriculum Builder (blueprint section 11): subject-scoped concept
+extraction from sources (LLM + validation), concept graph with
+prerequisite edges, a module/topic tree. This is where `concepts`,
+`concept_edges`, and `modules` tables enter the schema, and where the
+`subjects` module (currently just a label on a source) becomes the
+organizing structure the rest of the curriculum hangs off of.
